@@ -17,11 +17,11 @@ This is a **habit tracking web app with gamification** that makes building good 
 
 | Priority | Feature | Status |
 |----------|---------|--------|
-| P0 | Daily habit checklist (create, toggle, track) | 🔧 Building |
-| P0 | User authentication (email + Google OAuth) | 🔧 Building |
-| P0 | Tree gamification (Canvas, 5 health states) | 🔧 Building |
-| P1 | Analytics & trends (weekly/monthly charts) | 🔧 Building |
-| P1 | Shareable public profile | 🔧 Building |
+| P0 | Daily habit checklist (create, toggle, track) | ✅ Completed |
+| P0 | User authentication (email + Google OAuth) | ✅ Completed |
+| P0 | Tree gamification (Canvas, 5 health states) | ✅ Completed |
+| P1 | Analytics & trends (weekly/monthly charts) | ✅ Completed |
+| P1 | Shareable public profile | ✅ Completed |
 | P2 | PWA / push notifications | ⏳ Future |
 | P2 | Habit categories & tags | ⏳ Future |
 | P2 | Social features (friends, leaderboards) | ⏳ Future |
