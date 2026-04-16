@@ -7,6 +7,6 @@ export default function PageShell({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={`container page-shell ${className}`.trim()}>{children}</div>;
+  return <div className={`app-container page-shell ${className}`.trim()}>{children}</div>;
 }
 

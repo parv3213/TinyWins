@@ -39,7 +39,7 @@ export default function LandingPage() {
        </header>
 
        {/* Hero Section */}
-       <main className="flex-1 container flex flex-col pt-12 pb-24 text-center">
+      <main className="flex-1 app-container flex flex-col pt-12 pb-24 text-center">
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl mb-6 tracking-tight">
              Watch your <br/><span className="text-[var(--success)] italic">consistency</span> grow.

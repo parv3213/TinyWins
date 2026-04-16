@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ============================================
    HABBIT TRACKER — DESIGN SYSTEM
    Vintage Paper Theme
@@ -74,6 +78,9 @@
   /* App chrome */
   --bottom-nav-height: 72px;
   --fab-size: 56px;
+
+  /* Layout */
+  --app-container-max: 480px;
 }
 
 /* ---------- Reset & Base ---------- */
@@ -221,6 +228,11 @@ a:hover {
   transform: scale(0.97);
 }
 
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(166, 124, 82, 0.22);
+}
+
 .btn-primary {
   background: var(--primary);
   color: var(--primary-fg);
@@ -248,6 +260,16 @@ a:hover {
 .btn-ghost:hover {
   border-color: var(--border);
   background: var(--muted);
+}
+
+.card .btn-ghost {
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.card .btn-ghost:hover {
+  background: var(--secondary);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-danger {
@@ -535,9 +557,9 @@ a:hover {
 .stagger-10 { animation-delay: 450ms; }
 
 /* ---------- Layout Utilities ---------- */
-.container {
+.app-container {
   width: 100%;
-  max-width: 480px;
+  max-width: var(--app-container-max);
   margin: 0 auto;
   padding: 0 var(--space-4);
 }
@@ -546,7 +568,12 @@ a:hover {
 .page-shell {
   width: 100%;
   min-height: 100dvh;
-  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-6));
+  padding-bottom: calc(
+    var(--bottom-nav-height) +
+    env(safe-area-inset-bottom, 0px) +
+    var(--space-6) +
+    var(--fab-size)
+  );
 }
 
 .bottom-nav {
@@ -570,7 +597,10 @@ a:hover {
 
 .fab {
   position: fixed;
-  right: var(--space-4);
+  right: max(
+    var(--space-4),
+    calc((100vw - var(--app-container-max)) / 2 + var(--space-4))
+  );
   bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-4));
   width: var(--fab-size);
   height: var(--fab-size);
@@ -674,15 +704,11 @@ a:hover {
 
 /* ---------- Responsive ---------- */
 @media (min-width: 480px) {
-  .container {
-    max-width: 520px;
-  }
+  :root { --app-container-max: 520px; }
 }
 
 @media (min-width: 768px) {
-  .container {
-    max-width: 600px;
-  }
+  :root { --app-container-max: 600px; }
 
   h1 { font-size: 2.75rem; }
   h2 { font-size: 2rem; }
@@ -698,9 +724,7 @@ a:hover {
 }
 
 @media (min-width: 1024px) {
-  .container {
-    max-width: 700px;
-  }
+  :root { --app-container-max: 700px; }
 }
 
 /* ---------- Scrollbar ---------- */

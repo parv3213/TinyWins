@@ -40,7 +40,7 @@ export default function BottomNav({ activePath }: { activePath: string }) {
 
   return (
     <nav className="bottom-nav" aria-label="Bottom navigation">
-      <div className="container bottom-nav-inner">
+      <div className="app-container bottom-nav-inner">
         {items.map((item) => {
           const isActive = activePath === item.path;
           return (
@@ -54,11 +54,11 @@ export default function BottomNav({ activePath }: { activePath: string }) {
               {isActive && (
                 <div className="absolute inset-0 bg-[var(--primary)] opacity-[0.08] rounded-xl animate-fadeIn"></div>
               )}
-              <div className={`transition-transform duration-300 ${isActive ? '-translate-y-1' : ''}`}>
+              <div className={`relative z-10 transition-transform duration-300 ${isActive ? '-translate-y-1' : ''}`}>
                 {item.icon}
               </div>
               <span
-                className="text-[10px] font-medium mt-1 animate-slideUp absolute bottom-1"
+                className="relative z-10 text-[10px] font-medium mt-1 animate-slideUp absolute bottom-1"
                 style={{ opacity: isActive ? 1 : 0 }}
                 aria-hidden={!isActive}
               >
