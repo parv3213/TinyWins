@@ -7,6 +7,11 @@ interface CompletionRingProps {
 
 export default function CompletionRing({ percentage, label = 'Weekly' }: CompletionRingProps) {
   const pct = Math.max(0, Math.min(100, Math.round(percentage)));
+  const digits = String(pct).length;
+  const numberFontSize =
+    digits >= 3 ? '2.25rem' : // 100
+    digits === 2 ? '2.65rem' : // 10-99
+    '3.05rem'; // 0-9
 
   // SVG ring math
   const size = 140;
@@ -48,8 +53,25 @@ export default function CompletionRing({ percentage, label = 'Weekly' }: Complet
       </svg>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="stat-number text-3xl">{pct}%</span>
-        <span className="text-[0.65rem] uppercase tracking-wider text-[var(--muted-fg)] font-medium mt-[-4px]">
+        <div
+          className="flex items-start justify-center text-[var(--fg)] font-bold leading-none"
+          style={{ fontFamily: 'var(--font-heading)' }}
+          aria-hidden="true"
+        >
+          <span style={{ fontSize: numberFontSize, fontVariantNumeric: 'tabular-nums' }}>{pct}</span>
+          <span
+            className="ml-0.5"
+            style={{
+              fontSize: '1.25rem',
+              lineHeight: 1,
+              marginTop: digits >= 3 ? '0.55rem' : '0.65rem',
+              opacity: 0.9,
+            }}
+          >
+            %
+          </span>
+        </div>
+        <span className="text-[0.65rem] uppercase tracking-wider text-[var(--muted-fg)] font-medium mt-1">
           {label}
         </span>
       </div>

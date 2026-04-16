@@ -50,25 +50,26 @@ export default function DashboardPage() {
       setHabits(fetchedHabits);
 
       const fetchedStats = await getUserStats(user.uid);
-      if (fetchedStats) {
-         setStats(fetchedStats);
-      }
+      // We'll update stats once at the end to avoid multiple rapid canvas updates.
+      let nextStats = fetchedStats ?? null;
 
       // Catch-up: finalize recent unfinalized days before today (auto-finalize for users who didn't click).
       // We only look back a bounded window to avoid heavy reads.
-      if (fetchedStats) {
+      if (nextStats) {
         const pendingFinalize = await getRecentDayLogsBefore(user.uid, todayStr, 14);
         const toFinalize = pendingFinalize
           .filter((r) => r.log.loggedAt && !r.log.finalizedAt)
           .sort((a, b) => a.dateStr.localeCompare(b.dateStr));
 
         if (toFinalize.length > 0) {
+          let lastHealth = nextStats.treeHealth;
           for (const { dateStr, log } of toFinalize) {
             const habitCount = log.habitCount ?? fetchedHabits.length;
             const res = await finalizeDayWithHealth(user.uid, dateStr, fetchedHabits, habitCount);
             // Keep local copy in sync (transaction reads/writes the source of truth).
-            setStats(prev => ({ ...prev, treeHealth: res.newHealth }));
+            lastHealth = res.newHealth;
           }
+          nextStats = { ...nextStats, treeHealth: lastHealth };
         }
       }
 
@@ -84,6 +85,10 @@ export default function DashboardPage() {
       } else {
          // Empty log for today
          setDayLog({ entries: {}, treeScore: 0, loggedAt: '' });
+      }
+
+      if (nextStats) {
+        setStats(nextStats);
       }
     } catch (e) {
       console.error("Failed to load dashboard data", e);
@@ -213,7 +218,13 @@ export default function DashboardPage() {
       <main className="flex flex-col gap-6">
         {/* Tree Gamification Widget */}
         <section>
-          <TreeCanvas health={effectiveTreeHealth} />
+          {loading ? (
+            <div className="w-full h-[350px] rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center">
+              <div className="spinner"></div>
+            </div>
+          ) : (
+            <TreeCanvas health={effectiveTreeHealth} />
+          )}
         </section>
 
         {/* Quick Stats Grid */}
