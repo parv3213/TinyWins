@@ -16,8 +16,11 @@ export function calculateTreeHealth(entries: Record<string, 'pending' | 'complet
             if (state === 'completed') score += 1;
             else if (state === 'failed') score -= 1;
         } else { // negative
-            if (state === 'failed') score -= 1; // if you did a negative habit, it's a fail
-            else if (state === 'completed') score += 1; // successfully avoided? actually standard is just 'pending' for avoided, but if they mark it completed maybe we reward. Let's stick to standard formula.
+            // UI semantics in this app:
+            // - completed = you did the bad thing (bad)
+            // - failed = you failed to do the bad thing / avoided it (good)
+            if (state === 'completed') score -= 1;
+            else if (state === 'failed') score += 1;
         }
     }
     

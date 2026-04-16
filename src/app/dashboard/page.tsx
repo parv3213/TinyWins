@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Habit, DayLog, UserStats } from '@/lib/types';
-import { getHabits, getDayLog, saveDayLog, getRecentDayLogs, getUserStats, updateUserStats, getTodayStr } from '@/lib/habits';
+import { getHabits, getDayLog, saveDayLog, getRecentDayLogs, getRecentDayLogsBefore, finalizeDayLog, getUserStats, updateUserStats, getTodayStr } from '@/lib/habits';
 import { calculateTreeHealth, applyDailyScoreToHealth } from '@/lib/analytics';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | undefined>(undefined);
 
-  const todayStr = getTodayStr();
+  const [todayStr, setTodayStr] = useState(getTodayStr());
 
   const computeCurrentStreakFromLogDates = (logDates: Set<string>, anchorDateStr: string) => {
     let streak = 0;
@@ -48,18 +48,38 @@ export default function DashboardPage() {
     try {
       const fetchedHabits = await getHabits(user.uid);
       setHabits(fetchedHabits);
-      
+
+      const fetchedStats = await getUserStats(user.uid);
+      if (fetchedStats) {
+         setStats(fetchedStats);
+      }
+
+      // Catch-up: finalize recent unfinalized days before today (auto-finalize for users who didn't click).
+      // We only look back a bounded window to avoid heavy reads.
+      if (fetchedStats) {
+        const pendingFinalize = await getRecentDayLogsBefore(user.uid, todayStr, 14);
+        const toFinalize = pendingFinalize
+          .filter((r) => r.log.loggedAt && !r.log.finalizedAt)
+          .sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+
+        if (toFinalize.length > 0) {
+          let rollingHealth = fetchedStats.treeHealth;
+          for (const { dateStr, log } of toFinalize) {
+            const habitCount = log.habitCount ?? fetchedHabits.length;
+            rollingHealth = applyDailyScoreToHealth(rollingHealth, log.treeScore || 0, habitCount || 0);
+            await updateUserStats(user.uid, { treeHealth: rollingHealth });
+            await finalizeDayLog(user.uid, dateStr);
+          }
+          setStats(prev => ({ ...prev, treeHealth: rollingHealth }));
+        }
+      }
+
       const fetchedLog = await getDayLog(user.uid, todayStr);
       if (fetchedLog) {
          setDayLog(fetchedLog);
       } else {
          // Empty log for today
          setDayLog({ entries: {}, treeScore: 0, loggedAt: '' });
-      }
-      
-      const fetchedStats = await getUserStats(user.uid);
-      if (fetchedStats) {
-         setStats(fetchedStats);
       }
     } catch (e) {
       console.error("Failed to load dashboard data", e);
@@ -72,8 +92,52 @@ export default function DashboardPage() {
     loadData();
   }, [loadData]);
 
+  const getMsUntilNextMidnight = () => {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(24, 0, 0, 0);
+    return next.getTime() - now.getTime();
+  };
+
+  const finalizeDateIfNeeded = useCallback(async (dateStr: string, log: DayLog, baseHealth: number, fallbackHabitCount: number) => {
+    if (!user) return baseHealth;
+    if (!log.loggedAt) return baseHealth;
+    if (log.finalizedAt) return baseHealth;
+
+    const habitCount = log.habitCount ?? fallbackHabitCount;
+    const newHealth = applyDailyScoreToHealth(baseHealth, log.treeScore || 0, habitCount || 0);
+
+    await updateUserStats(user.uid, { treeHealth: newHealth });
+    await finalizeDayLog(user.uid, dateStr);
+
+    setStats(prev => ({ ...prev, treeHealth: newHealth }));
+    if (dateStr === todayStr) {
+      setDayLog(prev => ({ ...prev, finalizedAt: new Date().toISOString() }));
+    }
+
+    return newHealth;
+  }, [user, todayStr]);
+
+  useEffect(() => {
+    if (!user) return;
+    const ms = getMsUntilNextMidnight() + 250; // small buffer to cross date boundary
+    const t = window.setTimeout(async () => {
+      try {
+        // Auto-finalize current day if user didn't click.
+        await finalizeDateIfNeeded(todayStr, dayLog, stats.treeHealth, dayLog.habitCount ?? habits.length);
+      } catch (e) {
+        console.error("Auto-finalize failed", e);
+      } finally {
+        setTodayStr(getTodayStr());
+      }
+    }, ms);
+
+    return () => window.clearTimeout(t);
+  }, [user, todayStr, dayLog, stats.treeHealth, habits.length, finalizeDateIfNeeded]);
+
   const handleToggle = async (habitId: string, newTargetStatus: 'pending' | 'completed' | 'failed') => {
       if (!user) return;
+      if (dayLog.finalizedAt) return;
       
       const isFirstSaveToday = !dayLog.loggedAt;
 
@@ -87,35 +151,43 @@ export default function DashboardPage() {
          ...prev,
          entries: newEntries,
          treeScore: dailyScore,
+         habitCount: habits.length,
          loggedAt: prev.loggedAt || new Date().toISOString()
-      }));
-      
-      // Apply to global health (stub logic, in a real app this might be more complex)
-      const newHealth = applyDailyScoreToHealth(stats.treeHealth, dailyScore, habits.length);
-      setStats(prev => ({
-         ...prev,
-         treeHealth: newHealth
       }));
 
       try {
-         await saveDayLog(user.uid, todayStr, newEntries, dailyScore);
+         await saveDayLog(user.uid, todayStr, newEntries, dailyScore, habits.length);
          if (isFirstSaveToday) {
             const recent = await getRecentDayLogs(user.uid, 90);
             const dateSet = new Set(recent.map(r => r.dateStr).concat([todayStr]));
             const currentStreak = computeCurrentStreakFromLogDates(dateSet, todayStr);
             const totalDaysLogged = stats.totalDaysLogged + 1;
             const longestStreak = Math.max(stats.longestStreak, currentStreak);
-            const nextStats = { treeHealth: newHealth, currentStreak, longestStreak, totalDaysLogged };
+            const nextStats = { currentStreak, longestStreak, totalDaysLogged };
             setStats(prev => ({ ...prev, ...nextStats }));
             await updateUserStats(user.uid, nextStats);
-         } else {
-            await updateUserStats(user.uid, { treeHealth: newHealth });
          }
       } catch(e) {
          console.error("Failed to save habit toggle", e);
          // Revert on failure (simple reload for now)
          loadData();
       }
+  };
+
+  const effectiveTreeHealth = (() => {
+    if (dayLog.finalizedAt) return stats.treeHealth;
+    const habitCount = dayLog.habitCount ?? habits.length;
+    return applyDailyScoreToHealth(stats.treeHealth, dayLog.treeScore || 0, habitCount || 0);
+  })();
+
+  const canFinalizeToday = !!dayLog.loggedAt && !dayLog.finalizedAt;
+  const handleFinalizeToday = async () => {
+    try {
+      await finalizeDateIfNeeded(todayStr, dayLog, stats.treeHealth, dayLog.habitCount ?? habits.length);
+    } catch (e) {
+      console.error("Finalize failed", e);
+      loadData();
+    }
   };
 
   const handleEdit = (habit: Habit) => {
@@ -140,7 +212,7 @@ export default function DashboardPage() {
       <main className="flex flex-col gap-6">
         {/* Tree Gamification Widget */}
         <section>
-          <TreeCanvas health={stats.treeHealth} />
+          <TreeCanvas health={effectiveTreeHealth} />
         </section>
 
         {/* Quick Stats Grid */}
@@ -156,14 +228,22 @@ export default function DashboardPage() {
            <div className="card-flat p-4 flex flex-col items-center justify-center text-center">
               <span className="stat-label">Tree Health</span>
               <div className="flex items-center gap-1 mt-1">
-                 <span className="stat-number">{stats.treeHealth}%</span>
+                 <span className="stat-number">{effectiveTreeHealth}%</span>
               </div>
               <div className="w-full h-1.5 bg-[var(--muted)] rounded-full mt-2 overflow-hidden">
                  <div 
                    className="h-full bg-[var(--primary)] transition-all duration-1000" 
-                   style={{ width: `${stats.treeHealth}%` }}
+                   style={{ width: `${effectiveTreeHealth}%` }}
                  ></div>
               </div>
+              <button
+                onClick={handleFinalizeToday}
+                disabled={!canFinalizeToday}
+                className={`btn btn-secondary mt-3 ${!canFinalizeToday ? 'opacity-60 cursor-not-allowed' : ''}`}
+                title={canFinalizeToday ? 'Apply today to your tree health' : 'Already finalized (or nothing logged yet)'}
+              >
+                Finalize day
+              </button>
            </div>
         </section>
 
@@ -201,6 +281,7 @@ export default function DashboardPage() {
                     onToggle={handleToggle}
                     onEdit={handleEdit}
                     index={index}
+                    disabled={!!dayLog.finalizedAt}
                   />
                ))}
             </div>

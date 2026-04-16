@@ -8,13 +8,15 @@ interface HabitCardProps {
   onToggle: (habitId: string, newStatus: HabitStatus) => void;
   onEdit: (habit: Habit) => void;
   index: number;
+  disabled?: boolean;
 }
 
-export default function HabitCard({ habit, status, onToggle, onEdit, index }: HabitCardProps) {
+export default function HabitCard({ habit, status, onToggle, onEdit, index, disabled }: HabitCardProps) {
   
   // Cycle states: pending -> completed -> failed -> pending
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening edit modal
+    if (disabled) return;
     
     let newStatus: HabitStatus;
     if (status === 'pending') newStatus = 'completed';
@@ -56,8 +58,11 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index }: Ha
   return (
     <div 
       className={`${cardClass} ${staggerClass}`}
-      onClick={() => onEdit(habit)}
-      title="Tap to Edit"
+      onClick={() => {
+        if (disabled) return;
+        onEdit(habit);
+      }}
+      title={disabled ? "Day finalized" : "Tap to Edit"}
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className={iconBgClass}>
@@ -80,7 +85,7 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index }: Ha
 
       <button 
         onClick={handleToggle}
-        className="w-9 h-9 rounded-full border-2 border-[var(--border)] flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 z-10 flex-shrink-0"
+        className={`w-9 h-9 rounded-full border-2 border-[var(--border)] flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 z-10 flex-shrink-0 ${disabled ? 'opacity-60 cursor-not-allowed hover:scale-100 active:scale-100' : ''}`}
         style={{
            backgroundColor: status === 'completed' 
               ? (habit.category === 'positive' ? 'var(--success)' : 'var(--danger)')
@@ -89,7 +94,8 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index }: Ha
                  : 'transparent',
            borderColor: status !== 'pending' ? 'transparent' : 'var(--border)'
         }}
-        title="Cycle Status: Pending → Completed → Failed"
+        disabled={!!disabled}
+        title={disabled ? "Day finalized" : "Cycle Status: Pending → Completed → Failed"}
       >
         {status === 'completed' && <span className="text-white text-sm">✓</span>}
         {status === 'failed' && <span className="text-white text-sm">✕</span>}

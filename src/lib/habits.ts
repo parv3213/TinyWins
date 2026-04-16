@@ -78,13 +78,20 @@ export async function getDayLog(uid: string, dateStr: string): Promise<DayLog | 
   return snap.data() as DayLog;
 }
 
-export async function saveDayLog(uid: string, dateStr: string, entries: DayLog['entries'], treeScore: number): Promise<void> {
+export async function saveDayLog(
+  uid: string,
+  dateStr: string,
+  entries: DayLog['entries'],
+  treeScore: number,
+  habitCount: number
+): Promise<void> {
   const logRef = doc(db, 'users', uid, 'logs', dateStr);
   await setDoc(logRef, {
     entries,
     treeScore,
+    habitCount,
     loggedAt: new Date().toISOString()
-  });
+  }, { merge: true });
 }
 
 export type DayLogWithDate = { dateStr: string; log: DayLog };
@@ -98,6 +105,29 @@ export async function getRecentDayLogs(uid: string, maxDays: number): Promise<Da
     dateStr: d.id,
     log: d.data() as DayLog
   }));
+}
+
+export async function getRecentDayLogsBefore(uid: string, beforeDateStr: string, maxDays: number): Promise<DayLogWithDate[]> {
+  const logsRef = collection(db, 'users', uid, 'logs');
+  const q = query(
+    logsRef,
+    where(documentId(), '<', beforeDateStr),
+    orderBy(documentId(), 'desc'),
+    limit(maxDays)
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((d) => ({
+    dateStr: d.id,
+    log: d.data() as DayLog
+  }));
+}
+
+export async function finalizeDayLog(uid: string, dateStr: string): Promise<void> {
+  const logRef = doc(db, 'users', uid, 'logs', dateStr);
+  await setDoc(logRef, {
+    finalizedAt: new Date().toISOString()
+  }, { merge: true });
 }
 
 // --- Stats ---
