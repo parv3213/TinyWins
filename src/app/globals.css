@@ -169,6 +169,14 @@ a:hover {
   box-shadow: var(--shadow-md);
 }
 
+.card-auth {
+  padding: var(--space-8);
+}
+
+.card-auth:hover {
+  transform: none;
+}
+
 .card-flat {
   background: var(--card);
   border: 1px solid var(--border);

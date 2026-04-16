@@ -10,14 +10,20 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isPublicRoute =
+    pathname === '/login' ||
+    pathname === '/terms' ||
+    pathname === '/privacy' ||
+    pathname.startsWith('/profile/');
+
   useEffect(() => {
     if (!loading && !user) {
       // Don't redirect if we're on the login page or public profile
-      if (pathname !== '/login' && !pathname.startsWith('/profile/')) {
+      if (!isPublicRoute) {
          router.push('/login');
       }
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router, isPublicRoute]);
 
   if (loading) {
      return (
@@ -28,7 +34,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   }
 
   // If not logged in, return null while router redirects
-  if (!user && pathname !== '/login' && !pathname.startsWith('/profile/')) {
+  if (!user && !isPublicRoute) {
     return null;
   }
 

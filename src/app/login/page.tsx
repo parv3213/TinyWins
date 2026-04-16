@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const { user, loading, signInWithGoogle } = useAuth();
+  const { user, loading, signInWithGoogle, signInAnonymously } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -18,6 +18,15 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
+      // Router will push in useEffect
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleGuestSignIn = async () => {
+    try {
+      await signInAnonymously();
       // Router will push in useEffect
     } catch (error) {
       console.error(error);
@@ -58,6 +67,13 @@ export default function LoginPage() {
             </g>
           </svg>
           Continue with Google
+        </button>
+
+        <button
+          onClick={handleGuestSignIn}
+          className="btn btn-primary btn-full btn-lg font-medium mb-6 hover:scale-[1.02] transition-transform"
+        >
+          Continue as guest
         </button>
 
         <div className="divider mb-6">Or continue with email</div>

@@ -37,6 +37,12 @@ export default function SettingsPage() {
 
   if (!user) return null;
 
+  const emailLabel = user.email
+    ? user.email
+    : user.isAnonymous
+      ? 'anon@habbit.invalid'
+      : 'No email';
+
   return (
     <div className="container pb-24">
       <Header title="Settings" showDate={false} />
@@ -55,7 +61,7 @@ export default function SettingsPage() {
            )}
            <div>
               <h2 className="text-xl mb-1">{user.displayName || 'Anonymous Forester'}</h2>
-              <p className="text-sm text-[var(--muted-fg)]">{user.email}</p>
+              <p className="text-sm text-[var(--muted-fg)]">{emailLabel}</p>
            </div>
         </div>
 
