@@ -4,8 +4,8 @@ import Link from 'next/link';
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 sm:py-16">
-      <div className="card card-auth w-full max-w-2xl animate-slideUp">
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-10 sm:py-16 relative z-10">
+      <div className="card w-full max-w-2xl animate-slideUp !p-6 sm:!p-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <h1 className="text-center">Privacy Policy</h1>
