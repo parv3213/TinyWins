@@ -165,7 +165,7 @@ export default function HabitForm({ onClose, onSuccess, existingHabit }: HabitFo
               <button 
                 type="button" 
                 onClick={handleDelete}
-                className="btn btn-danger btn-icon w-auto px-4"
+                className="btn btn-danger-outline btn-lg px-5"
                 disabled={loading}
                 title="Delete Habit"
               >

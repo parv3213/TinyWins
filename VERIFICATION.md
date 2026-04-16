@@ -1,4 +1,4 @@
-# ✅ Habbit Tracker — Verification Guide
+# ✅ TinyWins — Verification Guide
 
 ## Build Verification
 

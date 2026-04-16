@@ -23,4 +23,6 @@ export interface UserStats {
   longestStreak: number;
   totalDaysLogged: number;
   treeHealth: number; // 0-100
+  treeLevel?: number;
+  treeXp?: number;
 }

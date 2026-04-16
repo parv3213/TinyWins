@@ -13,15 +13,17 @@ interface HabitCardProps {
 
 export default function HabitCard({ habit, status, onToggle, onEdit, index, disabled }: HabitCardProps) {
   
-  // Cycle states: pending -> completed -> failed -> pending
+  // This app treats habits as a simple checkbox:
+  // - pending = unchecked
+  // - completed = checked
+  // We keep legacy compatibility for older logs that may contain `failed`.
+  const effectiveStatus: HabitStatus = status === 'failed' ? 'pending' : status;
+
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening edit modal
     if (disabled) return;
     
-    let newStatus: HabitStatus;
-    if (status === 'pending') newStatus = 'completed';
-    else if (status === 'completed') newStatus = 'failed';
-    else newStatus = 'pending';
+    const newStatus: HabitStatus = effectiveStatus === 'completed' ? 'pending' : 'completed';
     
     onToggle(habit.id, newStatus);
   };
@@ -31,20 +33,13 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index, disa
   let badgeClass = 'badge ';
   let iconBgClass = 'w-10 h-10 rounded-full flex items-center justify-center text-xl transition-colors duration-300 ';
   
-  if (status === 'completed') {
+  if (effectiveStatus === 'completed') {
     cardClass += habit.category === 'positive' 
       ? ' border-[var(--success)] shadow-[0_0_12px_var(--success-glow)] bg-[var(--card)]'
       : ' border-[var(--danger)] shadow-[0_0_12px_var(--danger-glow)] bg-[var(--card)]'; // you "completed" a bad habit = failure
     
     iconBgClass += habit.category === 'positive' ? 'bg-[var(--success-light)]' : 'bg-[var(--danger-light)]';
     badgeClass += habit.category === 'positive' ? 'badge-positive' : 'badge-negative';
-  } else if (status === 'failed') {
-     cardClass += habit.category === 'positive' 
-      ? ' border-[var(--danger)] shadow-[0_0_12px_var(--danger-glow)] bg-[var(--card)]' // failed a good habit
-      : ' border-[var(--success)] shadow-[0_0_12px_var(--success-glow)] bg-[var(--card)]'; // failed to "do" a bad habit = success
-      
-    iconBgClass += habit.category === 'positive' ? 'bg-[var(--danger-light)]' : 'bg-[var(--success-light)]';
-    badgeClass += habit.category === 'positive' ? 'badge-negative' : 'badge-positive';
   } else {
     // Pending
     cardClass += ' hover:border-[var(--primary)]';
@@ -74,11 +69,6 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index, disa
             <span className={badgeClass}>
               {habit.category === 'positive' ? 'Good' : 'Bad'}
             </span>
-            {status !== 'pending' && (
-              <span className="text-xs font-medium text-[var(--muted-fg)] uppercase tracking-wider self-center">
-                {status}
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -87,18 +77,15 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index, disa
         onClick={handleToggle}
         className={`w-9 h-9 rounded-full border-2 border-[var(--border)] flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 z-10 flex-shrink-0 ${disabled ? 'opacity-60 cursor-not-allowed hover:scale-100 active:scale-100' : ''}`}
         style={{
-           backgroundColor: status === 'completed' 
+           backgroundColor: effectiveStatus === 'completed' 
               ? (habit.category === 'positive' ? 'var(--success)' : 'var(--danger)')
-              : status === 'failed'
-                 ? (habit.category === 'positive' ? 'var(--danger)' : 'var(--success)')
-                 : 'transparent',
-           borderColor: status !== 'pending' ? 'transparent' : 'var(--border)'
+              : 'transparent',
+           borderColor: effectiveStatus !== 'pending' ? 'transparent' : 'var(--border)'
         }}
         disabled={!!disabled}
-        title={disabled ? "Day finalized" : "Cycle Status: Pending → Completed → Failed"}
+        title={disabled ? "Day finalized" : (effectiveStatus === 'completed' ? "Mark as not done" : "Mark as done")}
       >
-        {status === 'completed' && <span className="text-white text-sm">✓</span>}
-        {status === 'failed' && <span className="text-white text-sm">✕</span>}
+        {effectiveStatus === 'completed' && <span className="text-white text-sm">✓</span>}
       </button>
     </div>
   );

@@ -12,12 +12,26 @@ const firebaseConfig = {
 };
 
 const isBrowser = typeof window !== 'undefined';
-const hasConfig = !!firebaseConfig.apiKey && !!firebaseConfig.authDomain && !!firebaseConfig.projectId;
+const hasConfig =
+  !!firebaseConfig.apiKey &&
+  !!firebaseConfig.authDomain &&
+  !!firebaseConfig.projectId &&
+  !!firebaseConfig.appId;
 
-// Avoid initializing Firebase during build-time prerender when env missing.
-// If config missing in browser runtime, features will fail loudly where used.
-const app = getApps().length > 0 ? getApps()[0] : (hasConfig ? initializeApp(firebaseConfig) : null);
-const auth = app && isBrowser ? getAuth(app) : (null as unknown as ReturnType<typeof getAuth>);
-const db = app && isBrowser ? getFirestore(app) : (null as unknown as ReturnType<typeof getFirestore>);
+// Avoid initializing Firebase during server prerender/build.
+// Client components will use these exports in the browser.
+let _app: ReturnType<typeof initializeApp> | null = null;
+let _auth: ReturnType<typeof getAuth> | null = null;
+let _db: ReturnType<typeof getFirestore> | null = null;
 
-export { app, auth, db };
+if (isBrowser && hasConfig) {
+  _app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  _auth = getAuth(_app);
+  _db = getFirestore(_app);
+}
+
+// Keep callers simple (most code assumes these exist in client components).
+// If Firebase env vars missing, these will be null at runtime and will fail fast.
+export const app = _app as unknown as NonNullable<typeof _app>;
+export const auth = _auth as unknown as NonNullable<typeof _auth>;
+export const db = _db as unknown as NonNullable<typeof _db>;

@@ -21,7 +21,7 @@ export default function Header({ title, showDate = true }: HeaderProps) {
           <h1 className="text-2xl">{title}</h1>
         ) : (
           <h1 className="text-2xl text-[var(--primary)] flex items-center gap-2">
-            <span className="text-3xl">🌳</span> Habit Tracker
+            <span className="text-3xl">🌳</span> TinyWins
           </h1>
         )}
         {showDate && (

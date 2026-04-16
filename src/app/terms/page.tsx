@@ -31,7 +31,7 @@ export default function TermsPage() {
 
           <div className="flex flex-col gap-3 text-sm text-[var(--muted-fg)]">
             <p>
-              Habit Tracker is provided as-is. You’re responsible for how you use the app and
+              TinyWins is provided as-is. You’re responsible for how you use the app and
               for any data you enter.
             </p>
             <p>

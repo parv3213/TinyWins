@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Habit, DayLog, UserStats } from '@/lib/types';
-import { getHabits, getDayLog, saveDayLog, getRecentDayLogs, getRecentDayLogsBefore, finalizeDayLog, getUserStats, updateUserStats, getTodayStr } from '@/lib/habits';
+import { getHabits, getDayLog, saveDayLog, getRecentDayLogs, getRecentDayLogsBefore, finalizeDayWithHealth, getUserStats, updateUserStats, getTodayStr } from '@/lib/habits';
 import { calculateTreeHealth, applyDailyScoreToHealth } from '@/lib/analytics';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -18,7 +18,7 @@ export default function DashboardPage() {
   
   const [habits, setHabits] = useState<Habit[]>([]);
   const [dayLog, setDayLog] = useState<DayLog>({ entries: {}, treeScore: 0, loggedAt: '' });
-  const [stats, setStats] = useState<UserStats>({ currentStreak: 0, longestStreak: 0, totalDaysLogged: 0, treeHealth: 50 });
+  const [stats, setStats] = useState<UserStats>({ currentStreak: 0, longestStreak: 0, totalDaysLogged: 0, treeHealth: 50, treeLevel: 1, treeXp: 0 });
   
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -63,14 +63,12 @@ export default function DashboardPage() {
           .sort((a, b) => a.dateStr.localeCompare(b.dateStr));
 
         if (toFinalize.length > 0) {
-          let rollingHealth = fetchedStats.treeHealth;
           for (const { dateStr, log } of toFinalize) {
             const habitCount = log.habitCount ?? fetchedHabits.length;
-            rollingHealth = applyDailyScoreToHealth(rollingHealth, log.treeScore || 0, habitCount || 0);
-            await updateUserStats(user.uid, { treeHealth: rollingHealth });
-            await finalizeDayLog(user.uid, dateStr);
+            const res = await finalizeDayWithHealth(user.uid, dateStr, fetchedHabits, habitCount);
+            // Keep local copy in sync (transaction reads/writes the source of truth).
+            setStats(prev => ({ ...prev, treeHealth: res.newHealth }));
           }
-          setStats(prev => ({ ...prev, treeHealth: rollingHealth }));
         }
       }
 
@@ -111,18 +109,15 @@ export default function DashboardPage() {
     if (log.finalizedAt) return baseHealth;
 
     const habitCount = log.habitCount ?? fallbackHabitCount;
-    const newHealth = applyDailyScoreToHealth(baseHealth, log.treeScore || 0, habitCount || 0);
+    const res = await finalizeDayWithHealth(user.uid, dateStr, habits, habitCount);
 
-    await updateUserStats(user.uid, { treeHealth: newHealth });
-    await finalizeDayLog(user.uid, dateStr);
-
-    setStats(prev => ({ ...prev, treeHealth: newHealth }));
-    if (dateStr === todayStr) {
+    setStats(prev => ({ ...prev, treeHealth: res.newHealth }));
+    if (res.applied && dateStr === todayStr) {
       setDayLog(prev => ({ ...prev, finalizedAt: new Date().toISOString() }));
     }
 
-    return newHealth;
-  }, [user, todayStr]);
+    return res.newHealth;
+  }, [user, todayStr, habits]);
 
   useEffect(() => {
     if (!user) return;
@@ -184,9 +179,18 @@ export default function DashboardPage() {
   const effectiveTreeHealth = (() => {
     if (dayLog.finalizedAt) return stats.treeHealth;
     const habitCount = dayLog.habitCount ?? habits.length;
-    return applyDailyScoreToHealth(stats.treeHealth, dayLog.treeScore || 0, habitCount || 0);
+    return applyDailyScoreToHealth(stats.treeHealth, dayLog.treeScore || 0, habits, habitCount);
   })();
 
+  const treeLevel = stats.treeLevel ?? 1;
+  const treeXp = stats.treeXp ?? 0;
+  const xpToNext = 100 + Math.max(0, treeLevel - 1) * 25;
+  const xpPct = xpToNext > 0 ? Math.min(100, Math.round((treeXp / xpToNext) * 100)) : 0;
+  const healthLabel =
+    effectiveTreeHealth >= 80 ? 'Thriving' :
+    effectiveTreeHealth >= 55 ? 'Growing' :
+    effectiveTreeHealth >= 35 ? 'Struggling' :
+    'Withering';
   const handleEdit = (habit: Habit) => {
     setEditingHabit(habit);
     setIsFormOpen(true);
@@ -223,15 +227,21 @@ export default function DashboardPage() {
            </div>
            
            <div className="card-flat p-4 flex flex-col items-center justify-center text-center">
-              <span className="stat-label">Tree Health</span>
-              <div className="flex items-center gap-1 mt-1">
-                 <span className="stat-number">{effectiveTreeHealth}%</span>
+              <span className="stat-label">Tree Level</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                 <span className="stat-number">{treeLevel}</span>
+                 <span className="text-sm font-medium text-[var(--muted-fg)]">({healthLabel})</span>
               </div>
-              <div className="w-full h-1.5 bg-[var(--muted)] rounded-full mt-2 overflow-hidden">
-                 <div 
-                   className="h-full bg-[var(--primary)] transition-all duration-1000" 
-                   style={{ width: `${effectiveTreeHealth}%` }}
-                 ></div>
+              <div className="w-full mt-2">
+                <div className="w-full h-1.5 bg-[var(--muted)] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[var(--primary)] transition-all duration-700"
+                    style={{ width: `${xpPct}%` }}
+                  ></div>
+                </div>
+                <div className="mt-2 text-xs font-medium text-[var(--muted-fg)]">
+                  {treeXp}/{xpToNext} XP
+                </div>
               </div>
            </div>
         </section>
