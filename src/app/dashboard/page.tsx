@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Habit, DayLog, UserStats } from '@/lib/types';
-import { getHabits, getDayLog, saveDayLog, getUserStats, updateUserStats, getTodayStr } from '@/lib/habits';
+import { getHabits, getDayLog, saveDayLog, getRecentDayLogs, getUserStats, updateUserStats, getTodayStr } from '@/lib/habits';
 import { calculateTreeHealth, applyDailyScoreToHealth } from '@/lib/analytics';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -25,6 +25,22 @@ export default function DashboardPage() {
   const [editingHabit, setEditingHabit] = useState<Habit | undefined>(undefined);
 
   const todayStr = getTodayStr();
+
+  const computeCurrentStreakFromLogDates = (logDates: Set<string>, anchorDateStr: string) => {
+    let streak = 0;
+    const d = new Date(anchorDateStr + 'T00:00:00');
+    // cap to reasonable lookback to avoid infinite loops if input weird
+    for (let i = 0; i < 365; i++) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${day}`;
+      if (!logDates.has(dateStr)) break;
+      streak += 1;
+      d.setDate(d.getDate() - 1);
+    }
+    return streak;
+  };
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -59,6 +75,8 @@ export default function DashboardPage() {
   const handleToggle = async (habitId: string, newTargetStatus: 'pending' | 'completed' | 'failed') => {
       if (!user) return;
       
+      const isFirstSaveToday = !dayLog.loggedAt;
+
       // Optimistic update
       const newEntries = { ...dayLog.entries, [habitId]: newTargetStatus };
       
@@ -68,7 +86,8 @@ export default function DashboardPage() {
       setDayLog(prev => ({
          ...prev,
          entries: newEntries,
-         treeScore: dailyScore
+         treeScore: dailyScore,
+         loggedAt: prev.loggedAt || new Date().toISOString()
       }));
       
       // Apply to global health (stub logic, in a real app this might be more complex)
@@ -80,7 +99,18 @@ export default function DashboardPage() {
 
       try {
          await saveDayLog(user.uid, todayStr, newEntries, dailyScore);
-         await updateUserStats(user.uid, { treeHealth: newHealth });
+         if (isFirstSaveToday) {
+            const recent = await getRecentDayLogs(user.uid, 90);
+            const dateSet = new Set(recent.map(r => r.dateStr).concat([todayStr]));
+            const currentStreak = computeCurrentStreakFromLogDates(dateSet, todayStr);
+            const totalDaysLogged = stats.totalDaysLogged + 1;
+            const longestStreak = Math.max(stats.longestStreak, currentStreak);
+            const nextStats = { treeHealth: newHealth, currentStreak, longestStreak, totalDaysLogged };
+            setStats(prev => ({ ...prev, ...nextStats }));
+            await updateUserStats(user.uid, nextStats);
+         } else {
+            await updateUserStats(user.uid, { treeHealth: newHealth });
+         }
       } catch(e) {
          console.error("Failed to save habit toggle", e);
          // Revert on failure (simple reload for now)
@@ -102,14 +132,6 @@ export default function DashboardPage() {
     setIsFormOpen(false);
     loadData(); // Reload habits
   };
-
-  if (loading) {
-     return (
-       <div className="loading-screen">
-          <div className="spinner"></div>
-       </div>
-     );
-  }
 
   return (
     <PageShell>
@@ -154,7 +176,11 @@ export default function DashboardPage() {
              </span>
           </div>
           
-          {habits.length === 0 ? (
+          {loading ? (
+            <div className="card-flat p-8 flex items-center justify-center bg-[var(--card)]/50">
+              <div className="spinner"></div>
+            </div>
+          ) : habits.length === 0 ? (
             <div className="card-flat p-8 text-center bg-[var(--card)]/50 border-dashed border-2">
                <div className="text-4xl mb-3">🌱</div>
                <h3 className="mb-2">Plant your first seed</h3>

@@ -62,8 +62,7 @@ export default function BottomNav({ activePath }: { activePath: string }) {
               </div>
               <span
                 className="relative z-10 h-3 text-[10px] leading-3 font-medium"
-                style={{ opacity: isActive ? 1 : 0 }}
-                aria-hidden={!isActive}
+                aria-current={isActive ? 'page' : undefined}
               >
                 {item.label}
               </span>
