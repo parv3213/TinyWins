@@ -25,9 +25,9 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index }: Ha
   };
 
   // Determine styling based on current status and habit category
-  let cardClass = 'card flex items-center justify-between cursor-pointer transition-all duration-300';
+  let cardClass = 'habit-card flex items-center justify-between cursor-pointer transition-all duration-300';
   let badgeClass = 'badge ';
-  let iconBgClass = 'w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-colors duration-300 ';
+  let iconBgClass = 'w-10 h-10 rounded-full flex items-center justify-center text-xl transition-colors duration-300 ';
   
   if (status === 'completed') {
     cardClass += habit.category === 'positive' 
@@ -59,13 +59,13 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index }: Ha
       onClick={() => onEdit(habit)}
       title="Tap to Edit"
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 min-w-0">
         <div className={iconBgClass}>
           {habit.icon}
         </div>
-        <div className="flex flex-col">
-          <span className="font-medium text-[var(--fg)] text-lg mb-1">{habit.name}</span>
-          <div className="flex gap-2">
+        <div className="flex flex-col min-w-0">
+          <span className="font-medium text-[var(--fg)] text-base leading-snug truncate">{habit.name}</span>
+          <div className="flex gap-2 items-center">
             <span className={badgeClass}>
               {habit.category === 'positive' ? 'Good' : 'Bad'}
             </span>
@@ -80,7 +80,7 @@ export default function HabitCard({ habit, status, onToggle, onEdit, index }: Ha
 
       <button 
         onClick={handleToggle}
-        className="w-10 h-10 rounded-full border-2 border-[var(--border)] flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 z-10"
+        className="w-9 h-9 rounded-full border-2 border-[var(--border)] flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 z-10 flex-shrink-0"
         style={{
            backgroundColor: status === 'completed' 
               ? (habit.category === 'positive' ? 'var(--success)' : 'var(--danger)')

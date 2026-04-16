@@ -8,6 +8,8 @@ export class TreeRenderer {
   private health: number; 
   private particles: Particle[] = [];
   private time: number = 0;
+  private treeSeed: number = 1;
+  private rngState: number = 1;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -15,10 +17,12 @@ export class TreeRenderer {
     this.width = canvas.width;
     this.height = canvas.height;
     this.health = 50;
+    this.setTreeSeed();
   }
 
   setHealth(health: number) {
     this.health = Math.max(0, Math.min(100, health));
+    this.setTreeSeed();
   }
 
   resize(width: number, height: number) {
@@ -26,6 +30,7 @@ export class TreeRenderer {
     this.height = height;
     this.canvas.width = width;
     this.canvas.height = height;
+    this.setTreeSeed();
   }
 
   update() {
@@ -59,6 +64,7 @@ export class TreeRenderer {
 
   draw() {
     this.ctx.clearRect(0, 0, this.width, this.height);
+    this.rngState = this.treeSeed;
     
     // Calculate global tree parameters based on health
     const maxBranches = Math.floor(6 + (this.health / 100) * 8); // 6 to 14 recursive depth
@@ -110,19 +116,19 @@ export class TreeRenderer {
     if (level < maxLevel) {
       // Branch out
       // Higher health = more branches
-      const branchCount = this.health < 30 ? 2 : (this.health > 80 ? Math.floor(Math.random() * 2) + 2 : 2);
+      const branchCount = this.health < 30 ? 2 : (this.health > 80 ? Math.floor(this.random() * 2) + 2 : 2);
       
       for (let i = 0; i < branchCount; i++) {
         const spread = 0.3 + (this.health / 100) * 0.6; // Angle spread
-        const newAngle = (Math.random() - 0.5) * spread;
-        const newLength = length * (0.6 + Math.random() * 0.2);
+        const newAngle = (this.random() - 0.5) * spread;
+        const newLength = length * (0.6 + this.random() * 0.2);
         const newThickness = thickness * 0.65;
         
         this.drawBranch(level + 1, newLength, newThickness, newAngle, maxLevel, trunkColor, leafColor);
       }
     } else {
       // Leaf/Fruit rendering at branch tips
-      if (leafColor !== 'transparent' && Math.random() < (this.health / 100) + 0.2) {
+      if (leafColor !== 'transparent' && this.random() < (this.health / 100) + 0.2) {
         this.ctx.fillStyle = leafColor;
         this.ctx.globalAlpha = 0.8;
         
@@ -140,23 +146,49 @@ export class TreeRenderer {
         this.ctx.globalAlpha = 1;
         
         // Draw fruits/flowers if very healthy
-        if (this.health >= 80 && Math.random() < 0.3) {
+        if (this.health >= 80 && this.random() < 0.3) {
            this.ctx.fillStyle = '#ffb74d'; // Orange fruit
            this.ctx.beginPath();
-           this.ctx.arc(leafSize/2, -leafSize/2, 4 + Math.random() * 3, 0, Math.PI * 2);
+           this.ctx.arc(leafSize/2, -leafSize/2, 4 + this.random() * 3, 0, Math.PI * 2);
            this.ctx.fill();
         }
       }
       
       // Draw rotten fruits if dying
-      if (this.health <= 20 && Math.random() < 0.4) {
+      if (this.health <= 20 && this.random() < 0.4) {
           this.ctx.fillStyle = '#4e342e'; // Dark rotten
           this.ctx.beginPath();
-          this.ctx.arc(0, 0, 3 + Math.random() * 2, 0, Math.PI * 2);
+          this.ctx.arc(0, 0, 3 + this.random() * 2, 0, Math.PI * 2);
           this.ctx.fill();
       }
     }
     
     this.ctx.restore();
+  }
+
+  private setTreeSeed() {
+    const healthBucket = Math.round(this.health / 5); // stable-ish changes
+    const w = Math.max(1, Math.floor(this.width));
+    const h = Math.max(1, Math.floor(this.height));
+    // cheap hash -> 32-bit seed
+    let seed = 2166136261;
+    seed ^= healthBucket + 0x9e3779b9;
+    seed = Math.imul(seed, 16777619);
+    seed ^= w;
+    seed = Math.imul(seed, 16777619);
+    seed ^= h;
+    seed = Math.imul(seed, 16777619);
+    this.treeSeed = seed >>> 0;
+    this.rngState = this.treeSeed;
+  }
+
+  private random() {
+    // mulberry32
+    let t = (this.rngState += 0x6D2B79F5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const out = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    this.rngState = this.rngState >>> 0;
+    return out;
   }
 }

@@ -189,6 +189,20 @@ a:hover {
   box-shadow: var(--shadow-md);
 }
 
+/* Compact habit rows */
+.habit-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.habit-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
 .card-auth {
   padding: var(--space-8);
 }

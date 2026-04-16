@@ -12,6 +12,7 @@ export default function TreeCanvas({ health }: TreeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<TreeRenderer | null>(null);
   const animationRef = useRef<number>(0);
+  const lastFrameTimeRef = useRef<number>(0);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -41,13 +42,21 @@ export default function TreeCanvas({ health }: TreeCanvasProps) {
     handleResize();
 
     // Animation Loop
-    const animate = () => {
-      renderer.update();
-      renderer.draw();
+    const targetFrameMs = 1000 / 30;
+    const animate = (now: number) => {
+      if (!lastFrameTimeRef.current) lastFrameTimeRef.current = now;
+      const elapsed = now - lastFrameTimeRef.current;
+
+      if (elapsed >= targetFrameMs) {
+        lastFrameTimeRef.current = now - (elapsed % targetFrameMs);
+        renderer.update();
+        renderer.draw();
+      }
+
       animationRef.current = requestAnimationFrame(animate);
     };
     
-    animate();
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', handleResize);

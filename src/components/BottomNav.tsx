@@ -52,13 +52,16 @@ export default function BottomNav({ activePath }: { activePath: string }) {
               }`}
             >
               {isActive && (
-                <div className="absolute inset-0 bg-[var(--primary)] opacity-[0.08] rounded-xl animate-fadeIn"></div>
+                <>
+                  <div className="absolute inset-0 rounded-xl bg-[var(--muted)] border border-[var(--border)] animate-fadeIn"></div>
+                  <div className="absolute left-3 right-3 bottom-1 h-[3px] rounded-full bg-[var(--primary)] opacity-80"></div>
+                </>
               )}
               <div className={`relative z-10 transition-transform duration-300 ${isActive ? '-translate-y-1' : ''}`}>
                 {item.icon}
               </div>
               <span
-                className="relative z-10 text-[10px] font-medium mt-1 animate-slideUp absolute bottom-1"
+                className="z-10 text-[10px] font-medium mt-1 animate-slideUp absolute bottom-1"
                 style={{ opacity: isActive ? 1 : 0 }}
                 aria-hidden={!isActive}
               >
