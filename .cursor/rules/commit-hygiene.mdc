@@ -1,0 +1,24 @@
+---
+description: Keep commits scoped and merge-ready
+alwaysApply: true
+---
+
+# Commit hygiene (always)
+
+## Goal
+Create **small, correctly scoped commits** that only include the work just done.
+
+## Before committing
+- Run `git status` and `git diff` to understand **exactly** what will be committed.
+- If there are unrelated/unexpected changes (common when multiple agents/tools run):
+  - Prefer **unstaging everything** first: `git restore --staged .`
+  - Then stage **only the intended files**: `git add <paths...>`
+- Avoid committing noisy/generated files unless intentional (e.g. `.next/`, lockfile churn, local env files).
+
+## Commit message
+- Follow existing repo style (short summary line, then a brief reason).
+- The subject should describe the user-facing outcome, not internal mechanics.
+
+## After committing
+- Run `git status` again and ensure working tree/staging area reflect expectations.
+

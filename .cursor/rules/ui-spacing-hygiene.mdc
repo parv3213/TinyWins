@@ -1,0 +1,29 @@
+---
+description: UI spacing and alignment hygiene for polished cards/layouts
+alwaysApply: true
+---
+
+# UI spacing hygiene (always)
+
+## Vertical rhythm checklist
+- Ensure each section has intentional spacing:
+  - **Title → subtitle**: small gap
+  - **Subtitle → primary action**: medium gap
+  - **Primary → secondary actions**: consistent gap
+  - **Actions → legal/footer text**: medium gap
+- Reset default margins on typographic elements when needed (e.g. `p { margin: 0 }` at the component level) so spacing is consistent.
+
+## Alignment checklist
+- Headings/subtitles should share the same alignment (usually centered inside auth cards).
+- Buttons should have consistent width, height, and icon alignment.
+
+## Robustness rule (when utilities are flaky)
+- Prefer **explicit layout** when you observe utility classes not applying consistently:
+  - Use inline styles or stable CSS classes for `display:flex`, `gap`, `padding`, `maxWidth`, and centering.
+  - Keep these styles minimal and scoped to the component.
+
+## Verify
+- Always visually verify in the running app:
+  - At least one mobile-ish width and one desktop width
+  - Confirm the card is centered and gaps are visible (subtitle→buttons, button→button).
+
