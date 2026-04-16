@@ -87,36 +87,45 @@ export default function AnalyticsPage() {
     const recompute = () => {
       if (!gotHabits || !gotLogs || !gotStats) return;
 
-      const data30: DailyCount[] = [];
+      const rows30: ActiveDayRow[] = [];
       let good30 = 0;
       let bad30 = 0;
       let good7 = 0;
-      const denom7 = habits.length * 7;
+      let total7 = 0;
 
       for (let i = 29; i >= 0; i--) {
         const d = new Date(todayStr + 'T00:00:00');
         d.setDate(d.getDate() - i);
         const dateStr = toDateStr(d);
         const log = logByDate.get(dateStr) ?? null;
+        if (!log?.loggedAt) continue; // hide missing/inactive days
 
         const { good, bad } = countDay(habits, log);
-        data30.push({ date: d.toISOString(), positive: good, negative: bad });
+        const total = good + bad;
+        if (total <= 0) continue;
+
+        const dateIso = d.toISOString();
+        rows30.push({ dateStr, dateIso, good, bad, total });
 
         good30 += good;
         bad30 += bad;
-        if (i < 7) good7 += good;
+        if (i < 7) {
+          good7 += good;
+          total7 += total;
+        }
       }
 
       const totalOutcomes = good30 + bad30;
       const nextGoodPct = totalOutcomes > 0 ? Math.round((good30 / totalOutcomes) * 100) : 0;
       const nextBadPct = totalOutcomes > 0 ? 100 - nextGoodPct : 0;
-      const nextWeeklyPct = denom7 > 0 ? Math.round((good7 / denom7) * 100) : 0;
+      const nextWeeklyPct = total7 > 0 ? Math.round((good7 / total7) * 100) : 0;
 
       setStats(overview ?? { currentStreak: 0, longestStreak: 0, totalDaysLogged: 0, treeHealth: 50 });
-      setMonthlyData(data30);
+      setMonthlyData(rows30.map((r) => ({ date: r.dateIso, positive: r.good, negative: r.bad })));
       setWeeklyPct(nextWeeklyPct);
       setGoodPct(nextGoodPct);
       setBadPct(nextBadPct);
+      setActiveRows(rows30);
       setLoading(false);
     };
 
