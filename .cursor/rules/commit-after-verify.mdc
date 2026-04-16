@@ -1,0 +1,12 @@
+---
+description: After verifying a change, create a small scoped git commit
+alwaysApply: true
+---
+
+# Commit after verification
+
+- If you have **verified** a code change (manual browser check, test run, or other explicit verification), you MUST create a git commit in the same turn.
+- Keep commits **small and correctly scoped** to the work just done.
+- Before committing, run `git status` and `git diff` and stage only intended files.
+- Never commit secrets (e.g. `.env*`, credentials files) or generated artifacts unless explicitly requested.
+

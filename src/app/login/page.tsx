@@ -2,12 +2,13 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const { user, loading, signInWithGoogle, signInAnonymously } = useAuth();
   const router = useRouter();
+  const [submitting, setSubmitting] = useState<'google' | 'guest' | null>(null);
 
   useEffect(() => {
     if (user && !loading) {
@@ -17,19 +18,23 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     try {
+      setSubmitting('google');
       await signInWithGoogle();
       // Router will push in useEffect
     } catch (error) {
       console.error(error);
+      setSubmitting(null);
     }
   };
 
   const handleGuestSignIn = async () => {
     try {
+      setSubmitting('guest');
       await signInAnonymously();
       // Router will push in useEffect
     } catch (error) {
       console.error(error);
+      setSubmitting(null);
     }
   };
 
@@ -44,6 +49,8 @@ export default function LoginPage() {
   if (user) {
     return null; // Will redirect
   }
+
+  const isBusy = submitting !== null;
 
   return (
     <div
@@ -87,6 +94,7 @@ export default function LoginPage() {
             <button
               onClick={handleGoogleSignIn}
               className="btn btn-primary btn-full btn-lg font-medium relative hover:scale-[1.02] transition-transform"
+              disabled={isBusy}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -104,14 +112,29 @@ export default function LoginPage() {
               <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/>
             </g>
               </svg>
-              Continue with Google
+              {submitting === 'google' ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="spinner w-5 h-5 border-2"></span>
+                  Signing in…
+                </span>
+              ) : (
+                'Continue with Google'
+              )}
             </button>
 
             <button
               onClick={handleGuestSignIn}
               className="btn btn-secondary btn-full btn-lg font-medium hover:scale-[1.02] transition-transform"
+              disabled={isBusy}
             >
-              Continue as guest
+              {submitting === 'guest' ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="spinner w-5 h-5 border-2"></span>
+                  Signing in…
+                </span>
+              ) : (
+                'Continue as guest'
+              )}
             </button>
           </div>
 
