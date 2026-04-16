@@ -71,8 +71,8 @@
   /* Z-Index */
   --z-dropdown: 100;
   --z-sticky: 200;
-  --z-modal: 300;
-  --z-toast: 400;
+  --z-modal: 600;
+  --z-toast: 700;
   --z-nav: 500;
 
   /* App chrome */
@@ -293,6 +293,17 @@ a:hover {
 
 .btn-danger:hover {
   background: #8a3f3f;
+}
+
+.btn-danger-outline {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(156, 75, 75, 0.45);
+}
+
+.btn-danger-outline:hover {
+  background: var(--danger-light);
+  border-color: rgba(156, 75, 75, 0.65);
 }
 
 .btn-lg {
@@ -701,6 +712,7 @@ a:hover {
   background: var(--card);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: var(--space-6);
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-width: 480px;
   max-height: 85dvh;

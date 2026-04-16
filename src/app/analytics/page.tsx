@@ -8,8 +8,10 @@ import MonthlyBarChart from '@/components/charts/MonthlyBarChart';
 import { Doughnut } from 'react-chartjs-2';
 import PageShell from '@/components/PageShell';
 import { useAuth } from '@/contexts/AuthContext';
-import { getHabits, getRecentDayLogs, getTodayStr, getUserStats } from '@/lib/habits';
-import { DayLog, Habit, HabitStatus, UserStats } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { getTodayStr } from '@/lib/habits';
+import { DayLog, Habit, UserStats } from '@/lib/types';
+import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 
 type DailyCount = { date: string; positive: number; negative: number };
 
@@ -24,13 +26,22 @@ const countDay = (habits: Habit[], log: DayLog | null) => {
   let good = 0;
   let bad = 0;
 
-  if (!log) return { good, bad };
-
+  // For analytics, every habit-day counts as either a good or bad outcome
+  // (so the charts/rings update even when a habit is simply left unchecked).
   for (const habit of habits) {
-    const state = (log.entries[habit.id] || 'pending') as HabitStatus;
-    if (state === 'pending') continue;
-    if (state === 'completed') good += 1;
-    else bad += 1;
+    const state = log?.entries?.[habit.id] ?? 'pending';
+
+    // Legacy support: some older logs may contain 'failed'. We treat it as "not completed".
+    const isCompleted = state === 'completed';
+
+    if (habit.category === 'positive') {
+      if (isCompleted) good += 1;
+      else bad += 1;
+    } else {
+      // Negative habit: unchecked/pending means "avoided" (good), checked/completed means "did it" (bad).
+      if (isCompleted) bad += 1;
+      else good += 1;
+    }
   }
 
   return { good, bad };
@@ -44,69 +55,129 @@ export default function AnalyticsPage() {
   const [weeklyPct, setWeeklyPct] = useState(0);
   const [goodPct, setGoodPct] = useState(0);
   const [badPct, setBadPct] = useState(0);
+  const [todayStr, setTodayStr] = useState(getTodayStr());
 
   useEffect(() => {
-    let cancelled = false;
+    if (!user) return;
 
-    const run = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const todayStr = getTodayStr();
-        const fetchedHabits = await getHabits(user.uid);
-        const fetchedStats = await getUserStats(user.uid);
-        const recentLogs = await getRecentDayLogs(user.uid, 90);
-
-        const logByDate = new Map<string, DayLog>();
-        for (const r of recentLogs) logByDate.set(r.dateStr, r.log);
-
-        const data30: DailyCount[] = [];
-        let good30 = 0;
-        let bad30 = 0;
-        let good7 = 0;
-        const denom7 = fetchedHabits.length * 7;
-
-        for (let i = 29; i >= 0; i--) {
-          const d = new Date(todayStr + 'T00:00:00');
-          d.setDate(d.getDate() - i);
-          const dateStr = toDateStr(d);
-          const log = logByDate.get(dateStr) ?? null;
-
-          const { good, bad } = countDay(fetchedHabits, log);
-          data30.push({ date: d.toISOString(), positive: good, negative: bad });
-
-          good30 += good;
-          bad30 += bad;
-          if (i < 7) good7 += good;
-        }
-
-        const totalActions = good30 + bad30;
-        const nextGoodPct = totalActions > 0 ? Math.round((good30 / totalActions) * 100) : 0;
-        const nextBadPct = totalActions > 0 ? 100 - nextGoodPct : 0;
-        const nextWeeklyPct = denom7 > 0 ? Math.round((good7 / denom7) * 100) : 0;
-
-        if (cancelled) return;
-        setStats(fetchedStats ?? { currentStreak: 0, longestStreak: 0, totalDaysLogged: 0, treeHealth: 50 });
-        setMonthlyData(data30);
-        setWeeklyPct(nextWeeklyPct);
-        setGoodPct(nextGoodPct);
-        setBadPct(nextBadPct);
-      } catch (e) {
-        console.error('Failed to load analytics', e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    const getMsUntilNextMidnight = () => {
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(24, 0, 0, 0);
+      return next.getTime() - now.getTime();
     };
 
-    run();
+    const t = window.setTimeout(() => {
+      setTodayStr(getTodayStr());
+    }, getMsUntilNextMidnight() + 250);
+
+    return () => window.clearTimeout(t);
+  }, [user, todayStr]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let habits: Habit[] = [];
+    let logByDate = new Map<string, DayLog>();
+    let overview: UserStats | null = null;
+
+    let gotHabits = false;
+    let gotLogs = false;
+    let gotStats = false;
+
+    const recompute = () => {
+      if (!gotHabits || !gotLogs || !gotStats) return;
+
+      const data30: DailyCount[] = [];
+      let good30 = 0;
+      let bad30 = 0;
+      let good7 = 0;
+      const denom7 = habits.length * 7;
+
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(todayStr + 'T00:00:00');
+        d.setDate(d.getDate() - i);
+        const dateStr = toDateStr(d);
+        const log = logByDate.get(dateStr) ?? null;
+
+        const { good, bad } = countDay(habits, log);
+        data30.push({ date: d.toISOString(), positive: good, negative: bad });
+
+        good30 += good;
+        bad30 += bad;
+        if (i < 7) good7 += good;
+      }
+
+      const totalOutcomes = good30 + bad30;
+      const nextGoodPct = totalOutcomes > 0 ? Math.round((good30 / totalOutcomes) * 100) : 0;
+      const nextBadPct = totalOutcomes > 0 ? 100 - nextGoodPct : 0;
+      const nextWeeklyPct = denom7 > 0 ? Math.round((good7 / denom7) * 100) : 0;
+
+      setStats(overview ?? { currentStreak: 0, longestStreak: 0, totalDaysLogged: 0, treeHealth: 50 });
+      setMonthlyData(data30);
+      setWeeklyPct(nextWeeklyPct);
+      setGoodPct(nextGoodPct);
+      setBadPct(nextBadPct);
+      setLoading(false);
+    };
+
+    const habitsRef = collection(db, 'users', user.uid, 'habits');
+    const habitsQuery = query(habitsRef, where('archived', '==', false), orderBy('order', 'asc'));
+    const unsubHabits = onSnapshot(
+      habitsQuery,
+      (snap) => {
+        habits = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Habit, 'id'>) })) as Habit[];
+        gotHabits = true;
+        recompute();
+      },
+      (err) => {
+        console.error('Failed to subscribe to habits', err);
+        gotHabits = true;
+        habits = [];
+        recompute();
+      }
+    );
+
+    const logsRef = collection(db, 'users', user.uid, 'logs');
+    const logsQuery = query(logsRef, orderBy('__name__', 'desc'), limit(90));
+    const unsubLogs = onSnapshot(
+      logsQuery,
+      (snap) => {
+        logByDate = new Map<string, DayLog>();
+        for (const d of snap.docs) logByDate.set(d.id, d.data() as DayLog);
+        gotLogs = true;
+        recompute();
+      },
+      (err) => {
+        console.error('Failed to subscribe to logs', err);
+        gotLogs = true;
+        logByDate = new Map<string, DayLog>();
+        recompute();
+      }
+    );
+
+    const statsRef = doc(db, 'users', user.uid, 'stats', 'overview');
+    const unsubStats = onSnapshot(
+      statsRef,
+      (snap) => {
+        overview = (snap.exists() ? (snap.data() as UserStats) : null);
+        gotStats = true;
+        recompute();
+      },
+      (err) => {
+        console.error('Failed to subscribe to stats', err);
+        gotStats = true;
+        overview = null;
+        recompute();
+      }
+    );
+
     return () => {
-      cancelled = true;
+      unsubHabits();
+      unsubLogs();
+      unsubStats();
     };
-  }, [user]);
+  }, [user, todayStr]);
 
   const ratioData = useMemo(() => {
     const total = goodPct + badPct;
@@ -122,14 +193,6 @@ export default function AnalyticsPage() {
     };
   }, [goodPct, badPct]);
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-      </div>
-    );
-  }
-
   return (
     <PageShell className="relative">
       {/* Background pattern */}
@@ -138,6 +201,12 @@ export default function AnalyticsPage() {
       <Header title="Trends & Analytics" showDate={false} />
 
       <main className="flex flex-col gap-5 mt-4">
+        {loading ? (
+          <div className="card-flat p-8 flex items-center justify-center bg-[var(--card)]/50">
+            <div className="spinner"></div>
+          </div>
+        ) : (
+          <>
         
         <div className="grid grid-cols-2 gap-4">
           {/* Weekly Ring */}
@@ -201,6 +270,8 @@ export default function AnalyticsPage() {
            <MonthlyBarChart dataPoints={monthlyData} />
         </div>
 
+          </>
+        )}
       </main>
 
       <BottomNav activePath="/analytics" />
