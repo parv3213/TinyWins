@@ -46,8 +46,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-10 sm:py-16 relative z-10">
-      <div className="card w-full max-w-md animate-slideUp !p-6 sm:!p-8">
+    <div
+      className="relative z-10"
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 16px',
+      }}
+    >
+      <div
+        className="card w-full animate-slideUp"
+        style={{
+          maxWidth: 448,
+          padding: 24,
+        }}
+      >
         <div className="flex flex-col gap-5 sm:gap-6">
           <div className="text-center">
             <h1 className="mb-2">Welcome Back</h1>

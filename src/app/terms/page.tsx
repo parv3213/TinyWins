@@ -4,8 +4,23 @@ import Link from 'next/link';
 
 export default function TermsPage() {
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-10 sm:py-16 relative z-10">
-      <div className="card w-full max-w-2xl animate-slideUp !p-6 sm:!p-8">
+    <div
+      className="relative z-10"
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 16px',
+      }}
+    >
+      <div
+        className="card w-full animate-slideUp"
+        style={{
+          maxWidth: 672,
+          padding: 24,
+        }}
+      >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <h1 className="text-center">Terms</h1>
