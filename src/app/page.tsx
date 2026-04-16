@@ -31,7 +31,7 @@ export default function LandingPage() {
        {/* Header */}
        <header className="p-6 flex items-center justify-between">
           <div className="text-2xl text-[var(--primary)] font-bold flex items-center gap-2">
-            <span className="text-3xl">🌳</span> Habit Tracker
+            <span className="text-3xl">🌳</span> TinyWins
           </div>
           <Link href="/login" className="btn btn-ghost hover:bg-[var(--card)] hover:shadow-sm">
              Sign In
@@ -42,15 +42,15 @@ export default function LandingPage() {
       <main className="flex-1 app-container flex flex-col pt-12 pb-24 text-center">
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl mb-6 tracking-tight">
-             Watch your <br/><span className="text-[var(--success)] italic">consistency</span> grow.
+             Tiny wins.<br/><span className="text-[var(--success)] italic">Real</span> momentum.
           </h1>
           
           <p className="text-lg text-[var(--muted-fg)] mb-10 max-w-md mx-auto">
-             A beautifully simple habit tracker that turns your daily choices into a living, flourishing virtual forest.
+             A minimalist habit tracker that makes consistency feel calm, clear, and rewarding.
           </p>
 
           <Link href="/login" className="btn btn-primary btn-lg inline-flex self-center rounded-full px-8 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all mb-16">
-             Start Growing Free
+             Start Free
           </Link>
 
           {/* Demo Tree Canvas */}
@@ -93,8 +93,8 @@ export default function LandingPage() {
        </main>
        
        <footer className="py-8 text-center text-sm text-[var(--muted-fg)] border-t border-[var(--border)] bg-[var(--card)]">
-          <p>Vintage Paper Design System by 21st.dev.</p>
-          <p className="mt-1">Free to use forever.</p>
+          <p>TinyWins.</p>
+          <p className="mt-1">Small habits. Real momentum.</p>
        </footer>
     </div>
   );

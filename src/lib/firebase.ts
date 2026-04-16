@@ -11,9 +11,27 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialize Firebase only if not already initialized
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
-const db = getFirestore(app);
+const isBrowser = typeof window !== 'undefined';
+const hasConfig =
+  !!firebaseConfig.apiKey &&
+  !!firebaseConfig.authDomain &&
+  !!firebaseConfig.projectId &&
+  !!firebaseConfig.appId;
 
-export { app, auth, db };
+// Avoid initializing Firebase during server prerender/build.
+// Client components will use these exports in the browser.
+let _app: ReturnType<typeof initializeApp> | null = null;
+let _auth: ReturnType<typeof getAuth> | null = null;
+let _db: ReturnType<typeof getFirestore> | null = null;
+
+if (isBrowser && hasConfig) {
+  _app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  _auth = getAuth(_app);
+  _db = getFirestore(_app);
+}
+
+// Keep callers simple (most code assumes these exist in client components).
+// If Firebase env vars missing, these will be null at runtime and will fail fast.
+export const app = _app as unknown as NonNullable<typeof _app>;
+export const auth = _auth as unknown as NonNullable<typeof _auth>;
+export const db = _db as unknown as NonNullable<typeof _db>;

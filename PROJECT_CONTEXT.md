@@ -1,10 +1,10 @@
-# 🌳 Habbit Tracker — Project Context
+# 🌳 TinyWins — Project Context
 
 > A passion project. Free to host, beautiful to use, emotionally engaging.
 
 ## Purpose & Ideology
 
-This is a **habit tracking web app with gamification** that makes building good habits feel rewarding and breaking bad ones feel consequential — not through guilt, but through a living, breathing virtual tree that reflects your daily choices.
+This is a **minimalist habit tracker with gamification** that makes building good habits feel rewarding without guilt — your virtual tree reflects your daily choices.
 
 **Core philosophy:**
 - **Emotional engagement over data overload** — The tree is the star, not spreadsheets

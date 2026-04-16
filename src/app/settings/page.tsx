@@ -104,7 +104,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="text-center mt-4">
-           <p className="text-xs text-[var(--muted-fg)]">Habit Tracker v1.0.0</p>
+           <p className="text-xs text-[var(--muted-fg)]">TinyWins v1.0.0</p>
            <p className="text-xs text-[var(--muted-fg)] mt-1">Built with Next.js & Firebase</p>
         </div>
 

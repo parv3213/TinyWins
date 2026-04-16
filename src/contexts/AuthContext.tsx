@@ -29,7 +29,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 });
 
-const ANON_DISPLAY_NAME = 'Anonymous Forester';
+const ANON_DISPLAY_NAME = 'Anonymous';
 const ANON_PHOTO_URL = '/avatars/anon.svg';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const photoURL =
               user.photoURL ?? (user.isAnonymous ? ANON_PHOTO_URL : null);
             const email =
-              user.email ?? (user.isAnonymous ? `anon+${user.uid}@habbit.invalid` : null);
+              user.email ?? (user.isAnonymous ? `anon+${user.uid}@tinywins.invalid` : null);
 
             await setDoc(userRef, {
               displayName,

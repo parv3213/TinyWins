@@ -17,8 +17,9 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "Habit Tracker | Watch Your Forest Grow",
-  description: "A beautifully simple habit tracker that turns your daily consistency into a flourishing virtual forest.",
+  title: "TinyWins | Small habits, real momentum",
+  description:
+    "TinyWins is a minimalist habit tracker that turns small daily wins into visible progress.",
 };
 
 export default function RootLayout({
@@ -29,8 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${newsreader.variable}`}>
       <head>
-        <meta name="theme-color" content="#f5f1e6" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <meta name="theme-color" content="#fbf7ef" />
       </head>
       <body>
         <div className="bg-dotted min-h-screen">

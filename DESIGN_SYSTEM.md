@@ -1,32 +1,32 @@
-# 🎨 Habbit Tracker — Design System
+# 🎨 TinyWins — Design System
 
-> Vintage Paper aesthetic — warm sepia tones, serif headings, parchment cards, organic textures.
+> Warm neutral premium — calm cream surfaces, crisp type, soft shadows, one refined accent.
 
 ## Design Philosophy
-- **Vintage warmth** over clinical minimalism
-- **Organic textures** over flat solid colors
+- **Minimal clarity** over decoration
+- **Warm neutrals** over pure white / cold gray
 - **Serif elegance** for headings, sans-serif clarity for body
-- **Nature-inspired** accents (forest green, earth brown, amber)
-- **Emotionally responsive** — the UI subtly shifts with tree health
+- **One accent** used consistently for primary actions and focus
+- **Emotionally responsive** — UI can still subtly shift with tree health
 
 ## Color Palette
 
-### Base Colors (Vintage Paper)
+### Base Colors (Warm Neutral Premium)
 ```css
---bg: #f5f1e6;              /* Page background — warm parchment */
---fg: #4a3f35;              /* Primary text — dark brown */
---card: #fffcf5;            /* Card background — cream white */
---card-fg: #4a3f35;         /* Card text */
---primary: #a67c52;         /* Primary actions — warm brown */
+--bg: #fbf7ef;              /* Page background — soft cream */
+--fg: #2f2a22;              /* Primary text — near-charcoal */
+--card: #fffdf8;            /* Card background — warm white */
+--card-fg: #2f2a22;         /* Card text */
+--primary: #2f5d50;         /* Primary actions — deep evergreen */
 --primary-fg: #ffffff;      /* Primary button text */
---secondary: #e2d8c3;       /* Secondary elements — tan */
---secondary-fg: #5c4d3f;    /* Secondary text */
---accent: #d4c8aa;          /* Accent — light khaki */
---muted: #ece5d8;           /* Muted backgrounds */
---muted-fg: #7d6b56;        /* Muted text */
---border: #dbd0ba;          /* Borders and dividers */
---input: #dbd0ba;           /* Input borders */
---ring: #a67c52;            /* Focus ring */
+--secondary: #efe7dc;       /* Secondary elements */
+--secondary-fg: #3f372e;    /* Secondary text */
+--accent: #e6d8c7;          /* Accent surface */
+--muted: #f3eee6;           /* Muted backgrounds */
+--muted-fg: #6f6255;        /* Muted text */
+--border: #e7ddcf;          /* Borders and dividers */
+--input: #e7ddcf;           /* Input borders */
+--ring: #2f5d50;            /* Focus ring */
 ```
 
 ### Semantic Colors (Habit States)
