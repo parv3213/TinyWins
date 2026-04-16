@@ -1,0 +1,40 @@
+---
+description: Multi-agent workflow: use git worktrees for isolation
+alwaysApply: true
+---
+
+# Multi-agent Git worktrees (required)
+
+When more than one agent (or agent + human) working in parallel, **do not share one working tree**. Use `git worktree` so each agent has its own working directory and index.
+
+## Rules
+
+- **One agent = one worktree + one branch**.
+- **No committing from primary repo dir** (`/Users/parv3213/Documents/habbit-tracker`) when multiple agents active.
+- **No `git add .`** in multi-agent mode. Stage explicit paths only.
+- Avoid disruptive commands in shared context: `checkout` to other branches, `reset --hard`, `stash`, interactive rebases.
+
+## Standard setup (from repo root)
+
+```bash
+git worktree list
+git worktree add ../habbit-tracker-agent1 -b agent1-work main
+git worktree add ../habbit-tracker-agent2 -b agent2-work main
+```
+
+## Standard commit flow (inside agent worktree)
+
+```bash
+git status
+git diff
+git add <paths...>
+git commit -m "..."
+```
+
+## Cleanup
+
+```bash
+git worktree list
+git worktree remove ../habbit-tracker-agent1
+git worktree remove ../habbit-tracker-agent2
+```
