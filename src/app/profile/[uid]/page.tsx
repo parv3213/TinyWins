@@ -1,5 +1,4 @@
-import { Habit, DayLog, UserStats } from '@/lib/types';
-import { getHabits, getDayLog } from '@/lib/habits';
+import { Habit, UserStats } from '@/lib/types';
 import TreeCanvas from '@/components/tree/TreeCanvas';
 import PageShell from '@/components/PageShell';
 
@@ -8,7 +7,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ uid: s
   const { uid } = await params;
   
   let habits: Habit[] = [];
-  const dayLog: DayLog | null = null;
   let stats: UserStats | null = null;
   let error = false;
 
@@ -29,7 +27,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ uid: s
      ];
      stats = { currentStreak: 12, longestStreak: 12, totalDaysLogged: 40, treeHealth: 85 };
      
-  } catch(e) {
+  } catch {
      error = true;
   }
 
@@ -49,7 +47,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ uid: s
     <PageShell className="pt-8">
       <header className="flex flex-col items-center justify-center text-center mb-8 animate-fadeIn">
         <div className="w-20 h-20 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-3xl font-medium mb-3 shadow-[var(--shadow-md)]">
-          W
+          {(uid?.[0] ?? 'W').toUpperCase()}
         </div>
         <h1 className="text-3xl mb-1">Woodsman&apos;s Forest</h1>
         <p className="text-[var(--muted-fg)] font-medium">Tracking habits since 2026</p>

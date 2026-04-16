@@ -1,4 +1,4 @@
-import { DayLog, Habit } from './types';
+import { Habit } from './types';
 
 export function calculateTreeHealth(entries: Record<string, 'pending' | 'completed' | 'failed'>, habits: Habit[]): number {
     let score = 0;

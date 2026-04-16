@@ -76,7 +76,13 @@ export default function DashboardPage() {
 
       const fetchedLog = await getDayLog(user.uid, todayStr);
       if (fetchedLog) {
-         setDayLog(fetchedLog);
+         // Recompute score from entries + current habits so preview never drifts.
+         const recomputedScore = calculateTreeHealth(fetchedLog.entries || {}, fetchedHabits);
+         setDayLog({
+           ...fetchedLog,
+           treeScore: recomputedScore,
+           habitCount: fetchedLog.habitCount ?? fetchedHabits.length
+         });
       } else {
          // Empty log for today
          setDayLog({ entries: {}, treeScore: 0, loggedAt: '' });
@@ -138,6 +144,7 @@ export default function DashboardPage() {
   const handleToggle = async (habitId: string, newTargetStatus: 'pending' | 'completed' | 'failed') => {
       if (!user) return;
       if (dayLog.finalizedAt) return;
+      if (habits.length === 0) return;
       
       const isFirstSaveToday = !dayLog.loggedAt;
 
@@ -179,16 +186,6 @@ export default function DashboardPage() {
     const habitCount = dayLog.habitCount ?? habits.length;
     return applyDailyScoreToHealth(stats.treeHealth, dayLog.treeScore || 0, habitCount || 0);
   })();
-
-  const canFinalizeToday = !!dayLog.loggedAt && !dayLog.finalizedAt;
-  const handleFinalizeToday = async () => {
-    try {
-      await finalizeDateIfNeeded(todayStr, dayLog, stats.treeHealth, dayLog.habitCount ?? habits.length);
-    } catch (e) {
-      console.error("Finalize failed", e);
-      loadData();
-    }
-  };
 
   const handleEdit = (habit: Habit) => {
     setEditingHabit(habit);
@@ -236,14 +233,6 @@ export default function DashboardPage() {
                    style={{ width: `${effectiveTreeHealth}%` }}
                  ></div>
               </div>
-              <button
-                onClick={handleFinalizeToday}
-                disabled={!canFinalizeToday}
-                className={`btn btn-secondary mt-3 ${!canFinalizeToday ? 'opacity-60 cursor-not-allowed' : ''}`}
-                title={canFinalizeToday ? 'Apply today to your tree health' : 'Already finalized (or nothing logged yet)'}
-              >
-                Finalize day
-              </button>
            </div>
         </section>
 

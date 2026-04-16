@@ -1,55 +1,57 @@
 'use client';
 
-import { Doughnut } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-
-ChartJS.register(ArcElement, Tooltip, Legend);
-
 interface CompletionRingProps {
   percentage: number;
+  label?: string;
 }
 
-export default function CompletionRing({ percentage }: CompletionRingProps) {
-  // Ensure percentage is between 0 and 100
-  const validPercentage = Math.max(0, Math.min(100, percentage));
-  
-  const data = {
-    labels: ['Completed', 'Remaining'],
-    datasets: [
-      {
-         data: [validPercentage, 100 - validPercentage],
-         backgroundColor: [
-            'var(--success)', // Green
-            'var(--border)'   // Empty track
-         ],
-         borderWidth: 0,
-         cutout: '80%', // Thin ring
-         borderRadius: [10, 0] // Rounded edges on the progress bar
-      }
-    ]
-  };
+export default function CompletionRing({ percentage, label = 'Weekly' }: CompletionRingProps) {
+  const pct = Math.max(0, Math.min(100, Math.round(percentage)));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: { enabled: false }
-    },
-    animation: {
-       animateScale: true,
-       animateRotate: true,
-       duration: 1500,
-       easing: 'easeOutQuart' as const
-    }
-  };
+  // SVG ring math
+  const size = 140;
+  const stroke = 12;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = (pct / 100) * c;
 
   return (
     <div className="relative w-full h-[140px] flex items-center justify-center">
-      <Doughnut data={data} options={options} />
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="block"
+        aria-label={`${pct}% ${label}`}
+        role="img"
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="var(--border)"
+          strokeWidth={stroke}
+          fill="none"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="var(--success)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${dash} ${c - dash}`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{ transition: 'stroke-dasharray 700ms ease' }}
+        />
+      </svg>
+
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-         <span className="stat-number text-3xl">{Math.round(validPercentage)}%</span>
-         <span className="text-[0.65rem] uppercase tracking-wider text-[var(--muted-fg)] font-medium mt-[-4px]">Weekly</span>
+        <span className="stat-number text-3xl">{pct}%</span>
+        <span className="text-[0.65rem] uppercase tracking-wider text-[var(--muted-fg)] font-medium mt-[-4px]">
+          {label}
+        </span>
       </div>
     </div>
   );

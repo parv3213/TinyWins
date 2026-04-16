@@ -11,9 +11,13 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialize Firebase only if not already initialized
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
-const db = getFirestore(app);
+const isBrowser = typeof window !== 'undefined';
+const hasConfig = !!firebaseConfig.apiKey && !!firebaseConfig.authDomain && !!firebaseConfig.projectId;
+
+// Avoid initializing Firebase during build-time prerender when env missing.
+// If config missing in browser runtime, features will fail loudly where used.
+const app = getApps().length > 0 ? getApps()[0] : (hasConfig ? initializeApp(firebaseConfig) : null);
+const auth = app && isBrowser ? getAuth(app) : (null as unknown as ReturnType<typeof getAuth>);
+const db = app && isBrowser ? getFirestore(app) : (null as unknown as ReturnType<typeof getFirestore>);
 
 export { app, auth, db };

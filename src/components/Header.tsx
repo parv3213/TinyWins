@@ -1,5 +1,4 @@
 import { useAuth } from '@/contexts/AuthContext';
-import Image from 'next/image';
 
 interface HeaderProps {
   title?: string;
