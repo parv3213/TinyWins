@@ -47,7 +47,7 @@ export default function BottomNav({ activePath }: { activePath: string }) {
             <Link 
               key={item.path} 
               href={item.path}
-              className={`flex flex-col items-center p-2 rounded-xl transition-all duration-300 relative ${
+              className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 relative ${
                 isActive ? 'text-[var(--primary)]' : 'text-[var(--muted-fg)] hover:text-[var(--fg)]'
               }`}
             >
@@ -57,11 +57,11 @@ export default function BottomNav({ activePath }: { activePath: string }) {
                   <div className="absolute left-3 right-3 bottom-1 h-[3px] rounded-full bg-[var(--primary)] opacity-80"></div>
                 </>
               )}
-              <div className={`relative z-10 transition-transform duration-300 ${isActive ? '-translate-y-1' : ''}`}>
+              <div className="relative z-10">
                 {item.icon}
               </div>
               <span
-                className="z-10 text-[10px] font-medium mt-1 animate-slideUp absolute bottom-1"
+                className="relative z-10 h-3 text-[10px] leading-3 font-medium"
                 style={{ opacity: isActive ? 1 : 0 }}
                 aria-hidden={!isActive}
               >
