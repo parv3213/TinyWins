@@ -10,6 +10,7 @@ export class TreeRenderer {
   private time: number = 0;
   private treeSeed: number = 1;
   private rngState: number = 1;
+  private dpr: number = 1;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -28,8 +29,16 @@ export class TreeRenderer {
   resize(width: number, height: number) {
     this.width = width;
     this.height = height;
-    this.canvas.width = width;
-    this.canvas.height = height;
+
+    this.dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const pixelWidth = Math.max(1, Math.round(width * this.dpr));
+    const pixelHeight = Math.max(1, Math.round(height * this.dpr));
+
+    this.canvas.width = pixelWidth;
+    this.canvas.height = pixelHeight;
+
+    // Keep drawing coordinates in CSS pixels.
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.setTreeSeed();
   }
 
@@ -81,8 +90,16 @@ export class TreeRenderer {
     else if (this.health < 40) leafColor = '#9E9D24'; // Yellowish green
     else if (this.health < 60) leafColor = '#7CB342'; // Lighter green
     
+    // Default "zoomed out" view with a bit of ground padding.
+    // Healthier trees get bigger (more depth, thicker trunk, bigger leaves),
+    // so we zoom out a bit more as health increases to avoid clipping.
+    const viewScale = Math.min(0.9, Math.max(0.72, 0.9 - (this.health / 100) * 0.18));
+    const groundPad = 26;
+
     this.ctx.save();
-    this.ctx.translate(this.width / 2, this.height);
+    this.ctx.scale(viewScale, viewScale);
+    // Translate after scaling without scaling the translation distance.
+    this.ctx.translate((this.width / 2) / viewScale, (this.height - groundPad) / viewScale);
     
     // Draw the tree recursively
     this.drawBranch(0, trunkHeight, trunkThickness, 0, maxBranches, trunkColor, leafColor);
