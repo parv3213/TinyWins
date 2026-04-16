@@ -20,6 +20,23 @@ export default function TreeCanvas({ health }: TreeCanvasProps) {
     setIsClient(true);
   }, []);
 
+  // Sync tree health to global UI tint (very subtle).
+  useEffect(() => {
+    if (!isClient) return;
+
+    let tintColor = 'transparent';
+    if (health >= 80) tintColor = 'rgba(74, 124, 89, 0.04)'; // healthy green
+    else if (health >= 60) tintColor = 'rgba(74, 124, 89, 0.028)'; // lighter green
+    else if (health >= 40) tintColor = 'rgba(196, 168, 130, 0.022)'; // warm neutral
+    else tintColor = 'rgba(156, 75, 75, 0.028)'; // struggling red
+
+    document.documentElement.style.setProperty('--global-tint', tintColor);
+
+    return () => {
+      document.documentElement.style.setProperty('--global-tint', 'transparent');
+    };
+  }, [health, isClient]);
+
   useEffect(() => {
     if (!isClient || !canvasRef.current || !containerRef.current) return;
 
@@ -105,6 +122,25 @@ export default function TreeCanvas({ health }: TreeCanvasProps) {
         ref={canvasRef} 
         className="absolute inset-0 z-10 w-full h-full"
       />
+
+      {/* Glass reflection overlays (subtle, mirror-like) */}
+      <div
+        className="absolute inset-0 z-[15] pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(130deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.16) 18%, rgba(255,255,255,0.06) 32%, rgba(255,255,255,0) 58%)',
+          opacity: 0.55,
+          mixBlendMode: 'overlay',
+        }}
+      ></div>
+      <div
+        className="absolute inset-0 z-[15] pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(12deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 28%, rgba(255,255,255,0) 54%)',
+          opacity: 0.5,
+        }}
+      ></div>
       
       {/* Ground Overlay */}
       <div 

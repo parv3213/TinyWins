@@ -208,19 +208,28 @@ export async function getUserStats(uid: string): Promise<UserStats | null> {
   const statsRef = doc(db, 'users', uid, 'stats', 'overview');
   const snap = await getDoc(statsRef);
   
+  const defaults: UserStats = {
+    currentStreak: 0,
+    longestStreak: 0,
+    totalDaysLogged: 0,
+    treeHealth: 50,
+    treeLevel: 1,
+    treeXp: 0
+  };
+
   if (!snap.exists()) {
-    // Return default stats
-    return {
-      currentStreak: 0,
-      longestStreak: 0,
-      totalDaysLogged: 0,
-      treeHealth: 50,
-      treeLevel: 1,
-      treeXp: 0
-    };
+    return defaults;
   }
   
-  return snap.data() as UserStats;
+  const data = snap.data() as Partial<UserStats> & Record<string, unknown>;
+  const merged = { ...defaults, ...data } as UserStats;
+
+  // Defensive normalization: Firestore can contain strings if a legacy write happened.
+  merged.treeHealth = Number.isFinite(Number(merged.treeHealth)) ? Number(merged.treeHealth) : defaults.treeHealth;
+  merged.treeLevel = Number.isFinite(Number(merged.treeLevel)) ? Number(merged.treeLevel) : defaults.treeLevel;
+  merged.treeXp = Number.isFinite(Number(merged.treeXp)) ? Number(merged.treeXp) : defaults.treeXp;
+
+  return merged;
 }
 
 export async function updateUserStats(uid: string, stats: Partial<UserStats>) {

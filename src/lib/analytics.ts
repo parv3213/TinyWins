@@ -78,8 +78,16 @@ export function applyDailyScoreToHealth(
     habits: Habit[] | null,
     totalActiveHabitsFallback?: number
 ): number {
+    const safeCurrentHealth = Number(currentHealth);
+    const safeDailyScore = Number(dailyScore);
+
+    // Defensive: avoid NaN poisoning the UI if Firestore ever stores these as strings
+    // or some code path provides undefined/null.
+    const baseHealth = Number.isFinite(safeCurrentHealth) ? safeCurrentHealth : 50;
+    const dayScore = Number.isFinite(safeDailyScore) ? safeDailyScore : 0;
+
     const totalActiveHabits = habits?.length ?? totalActiveHabitsFallback ?? 0;
-    if (totalActiveHabits === 0) return currentHealth;
+    if (totalActiveHabits === 0) return Math.round(baseHealth);
     
     // Max possible daily swing is capped
     const maxSwing = 15; // 15 points max change per day
@@ -91,10 +99,10 @@ export function applyDailyScoreToHealth(
     // Note: dailyScore is computed by `calculateTreeHealth`, so it already encodes
     // category-aware semantics (positive vs negative).
     //
-    const normalized = normalizeDailyScore(dailyScore, habits, totalActiveHabitsFallback);
+    const normalized = normalizeDailyScore(dayScore, habits, totalActiveHabitsFallback);
     const swing = normalized * maxSwing;
     
-    let newHealth = currentHealth + swing;
+    let newHealth = baseHealth + swing;
     
     // Clamp between 0 and 100
     if (newHealth > 100) newHealth = 100;

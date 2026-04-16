@@ -1,37 +1,124 @@
-import { Habit, UserStats } from '@/lib/types';
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { getUserStats } from '@/lib/habits';
+import { UserStats } from '@/lib/types';
 import TreeCanvas from '@/components/tree/TreeCanvas';
 import PageShell from '@/components/PageShell';
 
-// We fetch data statically or via SSR depending on configuration
-export default async function ProfilePage({ params }: { params: Promise<{ uid: string }> }) {
-  const { uid } = await params;
-  
-  let habits: Habit[] = [];
-  let stats: UserStats | null = null;
-  let error = false;
+type PublicUserDoc = {
+  displayName?: string | null;
+  photoURL?: string | null;
+  createdAt?: Timestamp | { seconds: number; nanoseconds: number } | string | null;
+  shareEnabled?: boolean;
+};
 
-  // Since we don't have an admin SDK on the client bundle, the rules in Firestore
-  // must allow public read for shared profiles, or server-side admin fetch.
-  // Assuming Firestore rules: allow read: if resource.data.shareEnabled == true;
-  // For this MVP, we will assume the data gets fetched safely.
-  
-  try {
-     // Note: In real production with Firebase, you'd use Firebase Admin SDK to fetch this server-side bypassing rules, 
-     // or public read rules. For this build, we use the client SDK methods safely since they're just wrappers around REST.
-     
-     // Currently getHabits requires the user to be authed if rules restrict it. 
-     // We will stub this UI for preview purposes:
-     habits = [
-         { id: '1', name: 'Read 10 Pages', category: 'positive', icon: '📖', order: 1, createdAt: '', archived: false },
-         { id: '2', name: 'No Junk Food', category: 'positive', icon: '🍔', order: 2, createdAt: '', archived: false }
-     ];
-     stats = { currentStreak: 12, longestStreak: 12, totalDaysLogged: 40, treeHealth: 85 };
-     
-  } catch {
-     error = true;
+function yearFromCreatedAt(createdAt: PublicUserDoc['createdAt']): number | null {
+  if (!createdAt) return null;
+  if (typeof createdAt === 'string') {
+    const d = new Date(createdAt);
+    return Number.isFinite(d.getTime()) ? d.getFullYear() : null;
+  }
+  // Firestore Timestamp
+  if (createdAt instanceof Timestamp) return createdAt.toDate().getFullYear();
+  // Plain object timestamp (in case of serialization)
+  if (typeof createdAt === 'object' && 'seconds' in createdAt) {
+    const ms = createdAt.seconds * 1000;
+    const d = new Date(ms);
+    return Number.isFinite(d.getTime()) ? d.getFullYear() : null;
+  }
+  return null;
+}
+
+export default function ProfilePage({
+  params
+}: {
+  params: { uid: string } | Promise<{ uid: string }>;
+}) {
+  const [uid, setUid] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [shareEnabled, setShareEnabled] = useState(false);
+  const [profile, setProfile] = useState<PublicUserDoc | null>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.resolve(params)
+      .then((p) => {
+        if (!cancelled) setUid(p?.uid ?? null);
+      })
+      .catch((e) => {
+        console.error('Failed to resolve route params', e);
+        if (!cancelled) setUid(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [params]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!uid) return;
+      setLoading(true);
+      setError(false);
+      setShareEnabled(false);
+      setProfile(null);
+      setStats(null);
+
+      try {
+        const userRef = doc(db, 'users', uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+          if (!cancelled) setShareEnabled(false);
+          return;
+        }
+
+        const userData = userSnap.data() as PublicUserDoc;
+        const enabled = userData.shareEnabled === true;
+        if (!cancelled) {
+          setProfile(userData);
+          setShareEnabled(enabled);
+        }
+
+        if (!enabled) return;
+
+        const fetchedStats = await getUserStats(uid);
+        if (!cancelled) setStats(fetchedStats);
+      } catch (e) {
+        console.error('Failed to load public profile', e);
+        if (!cancelled) setError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
+  const trackingYear = useMemo(() => yearFromCreatedAt(profile?.createdAt), [profile?.createdAt]);
+  const displayName = profile?.displayName || 'Forester';
+
+  if (!uid || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dotted">
+        <div className="card text-center max-w-sm">
+          <div className="spinner mx-auto mb-4"></div>
+          <p className="text-[var(--muted-fg)] text-sm">Loading profile…</p>
+        </div>
+      </div>
+    );
   }
 
-  if (error || !stats) {
+  if (error || !shareEnabled || !stats) {
     return (
        <div className="min-h-screen flex items-center justify-center bg-dotted">
           <div className="card text-center max-w-sm">
@@ -46,11 +133,22 @@ export default async function ProfilePage({ params }: { params: Promise<{ uid: s
   return (
     <PageShell className="pt-8">
       <header className="flex flex-col items-center justify-center text-center mb-8 animate-fadeIn">
-        <div className="w-20 h-20 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-3xl font-medium mb-3 shadow-[var(--shadow-md)]">
-          {(uid?.[0] ?? 'W').toUpperCase()}
-        </div>
-        <h1 className="text-3xl mb-1">Woodsman&apos;s Forest</h1>
-        <p className="text-[var(--muted-fg)] font-medium">Tracking habits since 2026</p>
+        {profile?.photoURL ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.photoURL}
+            alt="Profile"
+            className="w-20 h-20 rounded-full border-2 border-[var(--border)] mb-3 shadow-[var(--shadow-md)] object-cover"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-3xl font-medium mb-3 shadow-[var(--shadow-md)]">
+            {(displayName?.[0] ?? uid?.[0] ?? 'F').toUpperCase()}
+          </div>
+        )}
+        <h1 className="text-3xl mb-1">{displayName}&apos;s Forest</h1>
+        <p className="text-[var(--muted-fg)] font-medium">
+          Tracking habits{trackingYear ? ` since ${trackingYear}` : ''}
+        </p>
       </header>
 
       <main className="flex flex-col gap-6">
@@ -77,28 +175,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ uid: s
               </div>
            </div>
         </section>
-
-        {/* Habits Showcase */}
-        <section className="animate-slideUp" style={{ animationDelay: '300ms' }}>
-          <div className="flex items-center justify-between mb-4">
-             <h2 className="text-xl">Active Habits</h2>
-          </div>
-          
-          <div className="flex justify-start gap-3 overflow-x-auto pb-4 snap-x -mx-4 px-4 scrollbar-hide">
-              {habits.map((h, i) => (
-                  <div key={i} className="card-flat flex-shrink-0 w-32 snap-start flex flex-col items-center justify-center text-center p-4">
-                     <span className="text-3xl mb-3 h-12 w-12 rounded-full bg-[var(--muted)] flex items-center justify-center">{h.icon}</span>
-                     <span className="font-medium text-[var(--fg)] text-sm mb-2 h-10 overflow-hidden line-clamp-2">{h.name}</span>
-                     <span className={`badge ${h.category === 'positive' ? 'badge-positive' : 'badge-negative'}`}>{h.category === 'positive' ? 'Good' : 'Bad'}</span>
-                  </div>
-              ))}
-          </div>
-        </section>
         
         {/* CTA */}
         <section className="mt-8 text-center animate-fadeIn" style={{ animationDelay: '500ms' }}>
              <p className="text-sm text-[var(--muted-fg)] mb-4">Want to start your own forest?</p>
-             <a href="/login" className="btn btn-primary inline-flex">Build Better Habits</a>
+             <a
+               href="/login"
+               className="btn btn-primary btn-lg rounded-full px-8 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+             >
+               Build Better Habits
+             </a>
         </section>
       </main>
     </PageShell>

@@ -2,15 +2,50 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import PageShell from '@/components/PageShell';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [shareEnabled, setShareEnabled] = useState<boolean>(false);
+  const [shareLoaded, setShareLoaded] = useState(false);
+  const [shareSaving, setShareSaving] = useState(false);
+  const [shareTooltipOpen, setShareTooltipOpen] = useState(false);
+
+  const isAnonymous = !!user?.isAnonymous;
+  const shareDisabledReason = useMemo(() => {
+    if (!isAnonymous) return null;
+    return 'This is an anonymous account. This feature is not available for this account.';
+  }, [isAnonymous]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadShareFlag() {
+      if (!user) return;
+      setShareLoaded(false);
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        const snap = await getDoc(userRef);
+        const enabled = snap.exists() ? (snap.data()?.shareEnabled === true) : false;
+        if (!cancelled) setShareEnabled(enabled);
+      } catch (e) {
+        console.error('Failed to load shareEnabled', e);
+        if (!cancelled) setShareEnabled(false);
+      } finally {
+        if (!cancelled) setShareLoaded(true);
+      }
+    }
+    loadShareFlag();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const handleSignOut = async () => {
     setLoading(true);
@@ -25,6 +60,8 @@ export default function SettingsPage() {
 
   const handleCopyLink = () => {
      if (!user) return;
+     if (isAnonymous) return;
+     if (!shareEnabled) return;
      const link = `${window.location.origin}/profile/${user.uid}`;
      navigator.clipboard.writeText(link);
      
@@ -34,6 +71,22 @@ export default function SettingsPage() {
         toast.className = "toast show";
         setTimeout(() => { toast.className = "toast"; }, 2500);
      }
+  };
+
+  const handleToggleShare = async (next: boolean) => {
+    if (!user) return;
+    if (isAnonymous) return;
+
+    setShareSaving(true);
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, { shareEnabled: next }, { merge: true });
+      setShareEnabled(next);
+    } catch (e) {
+      console.error('Failed to update shareEnabled', e);
+    } finally {
+      setShareSaving(false);
+    }
   };
 
   if (!user) return null;
@@ -77,10 +130,56 @@ export default function SettingsPage() {
                  <p className="font-medium">Public Profile</p>
                  <p className="text-xs text-[var(--muted-fg)] mt-1">Let others view your tree and stats.</p>
               </div>
-              <button onClick={handleCopyLink} className="btn btn-secondary btn-sm">
-                 Copy Link
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShareTooltipOpen((v) => !v)}
+                  className="text-[var(--muted-fg)] hover:text-[var(--fg)] transition-colors"
+                  aria-label="Public profile info"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                </button>
+
+                <label
+                  className="flex items-center gap-2 select-none"
+                  title={shareDisabledReason ?? undefined}
+                >
+                  <span className="text-xs text-[var(--muted-fg)]">Off</span>
+                  <input
+                    type="checkbox"
+                    checked={shareEnabled}
+                    disabled={isAnonymous || shareSaving || !shareLoaded}
+                    onChange={(e) => handleToggleShare(e.target.checked)}
+                  />
+                  <span className="text-xs text-[var(--muted-fg)]">On</span>
+                </label>
+
+                <button
+                  onClick={handleCopyLink}
+                  className="btn btn-secondary btn-sm"
+                  disabled={isAnonymous || !shareEnabled}
+                  title={
+                    shareDisabledReason ??
+                    (!shareEnabled ? 'Enable Public Profile to copy your link.' : undefined)
+                  }
+                >
+                  Copy Link
+                </button>
+              </div>
            </div>
+
+           {shareTooltipOpen ? (
+             <div className="p-4 border-b border-[var(--border)] bg-[var(--muted)]/20">
+               <p className="text-xs text-[var(--muted-fg)]">
+                 {shareDisabledReason ??
+                   'Turn this on to let anyone with your link view your tree and stats.'}
+               </p>
+             </div>
+           ) : null}
 
            <div 
               onClick={handleSignOut}
