@@ -257,6 +257,13 @@ a:hover {
   background: var(--primary-hover);
 }
 
+/* Global `a:hover { color: ... }` is more specific than `.btn-primary` alone, so link-buttons
+   would inherit the wrong text color on hover without an explicit override. */
+a.btn-primary:hover,
+a.btn-primary:focus-visible {
+  color: var(--primary-fg);
+}
+
 .btn-secondary {
   background: var(--secondary);
   color: var(--secondary-fg);
@@ -264,6 +271,11 @@ a:hover {
 
 .btn-secondary:hover {
   background: var(--accent);
+}
+
+a.btn-secondary:hover,
+a.btn-secondary:focus-visible {
+  color: var(--secondary-fg);
 }
 
 .btn-ghost {
@@ -275,6 +287,11 @@ a:hover {
 .btn-ghost:hover {
   border-color: var(--border);
   background: var(--muted);
+}
+
+a.btn-ghost:hover,
+a.btn-ghost:focus-visible {
+  color: var(--fg);
 }
 
 .card .btn-ghost {
@@ -294,6 +311,11 @@ a:hover {
 
 .btn-danger:hover {
   background: #8a3f3f;
+}
+
+a.btn-danger:hover,
+a.btn-danger:focus-visible {
+  color: #fff;
 }
 
 .btn-danger-outline {
@@ -328,6 +350,12 @@ a:hover {
   height: 40px;
   padding: 0;
   border-radius: var(--radius-md);
+}
+
+/* Tailwind radius utilities load before these `.btn` rules, so a lone `rounded-*`
+   class would lose to `.btn { border-radius: ... }`. Allow explicit pill buttons. */
+.btn.rounded-full {
+  border-radius: var(--radius-full);
 }
 
 /* ---------- Inputs ---------- */
