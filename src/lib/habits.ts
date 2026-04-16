@@ -10,8 +10,8 @@ import {
   query, 
   where, 
   orderBy, 
-  serverTimestamp,
-  writeBatch
+  limit,
+  documentId
 } from 'firebase/firestore';
 import { Habit, DayLog, UserStats } from './types';
 
@@ -85,6 +85,19 @@ export async function saveDayLog(uid: string, dateStr: string, entries: DayLog['
     treeScore,
     loggedAt: new Date().toISOString()
   });
+}
+
+export type DayLogWithDate = { dateStr: string; log: DayLog };
+
+export async function getRecentDayLogs(uid: string, maxDays: number): Promise<DayLogWithDate[]> {
+  const logsRef = collection(db, 'users', uid, 'logs');
+  const q = query(logsRef, orderBy(documentId(), 'desc'), limit(maxDays));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((d) => ({
+    dateStr: d.id,
+    log: d.data() as DayLog
+  }));
 }
 
 // --- Stats ---
