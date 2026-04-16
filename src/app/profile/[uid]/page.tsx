@@ -1,6 +1,7 @@
 import { Habit, DayLog, UserStats } from '@/lib/types';
 import { getHabits, getDayLog } from '@/lib/habits';
 import TreeCanvas from '@/components/tree/TreeCanvas';
+import PageShell from '@/components/PageShell';
 
 // We fetch data statically or via SSR depending on configuration
 export default async function ProfilePage({ params }: { params: Promise<{ uid: string }> }) {
@@ -45,7 +46,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ uid: s
   }
 
   return (
-    <div className="container pb-24 pt-8">
+    <PageShell className="pt-8">
       <header className="flex flex-col items-center justify-center text-center mb-8 animate-fadeIn">
         <div className="w-20 h-20 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-3xl font-medium mb-3 shadow-[var(--shadow-md)]">
           W
@@ -102,6 +103,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ uid: s
              <a href="/login" className="btn btn-primary inline-flex">Build Better Habits</a>
         </section>
       </main>
-    </div>
+    </PageShell>
   );
 }

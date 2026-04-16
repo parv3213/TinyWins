@@ -70,6 +70,10 @@
   --z-modal: 300;
   --z-toast: 400;
   --z-nav: 500;
+
+  /* App chrome */
+  --bottom-nav-height: 72px;
+  --fab-size: 56px;
 }
 
 /* ---------- Reset & Base ---------- */
@@ -96,6 +100,15 @@ body {
   line-height: 1.6;
   min-height: 100dvh;
   overflow-x: hidden;
+}
+
+/* ---------- Safe area utilities ---------- */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-bottom-inset {
+  bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ---------- Typography ---------- */
@@ -527,6 +540,67 @@ a:hover {
   max-width: 480px;
   margin: 0 auto;
   padding: 0 var(--space-4);
+}
+
+/* ---------- App shell helpers ---------- */
+.page-shell {
+  width: 100%;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-6));
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-nav);
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 16px rgba(74, 63, 53, 0.05);
+}
+
+.bottom-nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-2);
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+}
+
+.fab {
+  position: fixed;
+  right: var(--space-4);
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-4));
+  width: var(--fab-size);
+  height: var(--fab-size);
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: var(--primary-fg);
+  box-shadow: 0 4px 12px rgba(166, 124, 82, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: calc(var(--z-nav) - 10);
+  cursor: pointer;
+  border: none;
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.fab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(212, 200, 170, 0.9), 0 4px 12px rgba(166, 124, 82, 0.4);
+}
+
+.fab-ring {
+  position: absolute;
+  inset: 4px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  pointer-events: none;
 }
 
 .sr-only {

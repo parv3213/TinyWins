@@ -11,6 +11,7 @@ import HabitCard from '@/components/HabitCard';
 import AddHabitButton from '@/components/AddHabitButton';
 import HabitForm from '@/components/HabitForm';
 import TreeCanvas from '@/components/tree/TreeCanvas';
+import PageShell from '@/components/PageShell';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -111,7 +112,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container pb-24">
+    <PageShell>
       <Header />
 
       <main className="flex flex-col gap-6">
@@ -163,9 +164,8 @@ export default function DashboardPage() {
                </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-3 relative rounded-xl bg-dotted p-1 -mx-1">
-               {/* Background pattern layer */}
-               <div className="absolute inset-0 bg-dotted rounded-xl pointer-events-none -m-1"></div>
+            <div className="flex flex-col gap-3 relative rounded-xl p-1 -mx-1">
+               <div className="absolute inset-0 bg-dotted rounded-xl pointer-events-none"></div>
                
                {habits.map((habit, index) => (
                   <HabitCard 
@@ -194,6 +194,6 @@ export default function DashboardPage() {
           existingHabit={editingHabit}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -39,8 +39,8 @@ export default function BottomNav({ activePath }: { activePath: string }) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[var(--card)] border-t border-[var(--border)] z-50 px-6 py-2 pb-safe shadow-[0_-4px_16px_rgba(74,63,53,0.05)]">
-      <div className="max-w-md mx-auto flex justify-between items-center">
+    <nav className="bottom-nav" aria-label="Bottom navigation">
+      <div className="container bottom-nav-inner">
         {items.map((item) => {
           const isActive = activePath === item.path;
           return (
@@ -57,11 +57,13 @@ export default function BottomNav({ activePath }: { activePath: string }) {
               <div className={`transition-transform duration-300 ${isActive ? '-translate-y-1' : ''}`}>
                 {item.icon}
               </div>
-              {isActive && (
-                <span className="text-[10px] font-medium mt-1 animate-slideUp absolute bottom-1">
-                  {item.label}
-                </span>
-              )}
+              <span
+                className="text-[10px] font-medium mt-1 animate-slideUp absolute bottom-1"
+                style={{ opacity: isActive ? 1 : 0 }}
+                aria-hidden={!isActive}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}

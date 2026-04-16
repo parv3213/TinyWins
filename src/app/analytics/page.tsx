@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import CompletionRing from '@/components/charts/CompletionRing';
 import MonthlyBarChart from '@/components/charts/MonthlyBarChart';
 import { Doughnut } from 'react-chartjs-2';
+import PageShell from '@/components/PageShell';
 
 // Stub data for now since we don't have enough history in the DB to make the charts look good
 const STUB_MONTHLY_DATA = Array.from({ length: 30 }).map((_, i) => {
@@ -35,7 +36,7 @@ const RATIO_DATA = {
 
 export default function AnalyticsPage() {
   return (
-    <div className="container pb-24 relative min-h-screen">
+    <PageShell className="relative">
       {/* Background pattern */}
       <div className="absolute inset-0 bg-grid z-[-1]"></div>
       
@@ -108,6 +109,6 @@ export default function AnalyticsPage() {
       </main>
 
       <BottomNav activePath="/analytics" />
-    </div>
+    </PageShell>
   );
 }

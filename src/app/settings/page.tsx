@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
+import PageShell from '@/components/PageShell';
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -44,7 +45,7 @@ export default function SettingsPage() {
       : 'No email';
 
   return (
-    <div className="container pb-24">
+    <PageShell>
       <Header title="Settings" showDate={false} />
 
       <main className="flex flex-col gap-6 mt-4">
@@ -114,6 +115,6 @@ export default function SettingsPage() {
       </div>
 
       <BottomNav activePath="/settings" />
-    </div>
+    </PageShell>
   );
 }
