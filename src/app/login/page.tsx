@@ -63,13 +63,27 @@ export default function LoginPage() {
           padding: 24,
         }}
       >
-        <div className="flex flex-col gap-5 sm:gap-6">
-          <div className="text-center">
-            <h1 className="mb-2">Welcome Back</h1>
-            <p className="text-[var(--muted-fg)]">Sign in to watch your forest grow.</p>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 20,
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ marginBottom: 8 }}>Welcome Back</h1>
+            <p style={{ margin: 0, color: 'var(--muted-fg)' }}>
+              Sign in to watch your forest grow.
+            </p>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
             <button
               onClick={handleGoogleSignIn}
               className="btn btn-primary btn-full btn-lg font-medium relative hover:scale-[1.02] transition-transform"
@@ -101,7 +115,15 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <p className="text-center text-sm leading-relaxed text-[var(--muted-fg)]">
+          <p
+            style={{
+              textAlign: 'center',
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: 'var(--muted-fg)',
+              margin: 0,
+            }}
+          >
             By signing in, you agree to our{' '}
             <Link href="/terms" className="hover:underline">
               Terms
