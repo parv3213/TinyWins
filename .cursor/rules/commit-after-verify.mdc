@@ -10,3 +10,9 @@ alwaysApply: true
 - Before committing, run `git status` and `git diff` and stage only intended files.
 - Never commit secrets (e.g. `.env*`, credentials files) or generated artifacts unless explicitly requested.
 
+## Keep `main` merge-ready (always)
+
+- After committing in an agent worktree/branch, you MUST **merge the commit back into `main`** in the primary repo using a **fast-forward** update whenever possible.
+- If `main` has moved ahead, **rebase your worktree branch onto `main`**, then fast-forward `main` to that branch.
+- If the `main` working tree has local uncommitted edits, **stash them**, merge, then restore the stash.
+
