@@ -151,7 +151,21 @@ export async function finalizeDayLog(uid: string, dateStr: string): Promise<void
     );
 }
 
-export type FinalizeResult = { applied: boolean; newHealth: number };
+export type FinalizeResult = { applied: boolean; newHealth: number; newLevel: number; newXp: number };
+
+function dayHasActivity(entries: DayLog["entries"] | undefined): boolean {
+    if (!entries) return false;
+    return Object.values(entries).some((status) => status === "completed" || status === "failed");
+}
+
+function shiftDateStrByDays(dateStr: string, deltaDays: number): string {
+    const d = new Date(`${dateStr}T00:00:00`);
+    d.setDate(d.getDate() + deltaDays);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
 
 /**
  * Atomically finalizes a day (once) and applies its score to the user's tree health.
@@ -165,6 +179,23 @@ export async function finalizeDayWithHealth(
 ): Promise<FinalizeResult> {
     const logRef = doc(db, "users", uid, "logs", dateStr);
     const statsRef = doc(db, "users", uid, "stats", "overview");
+    const logsRef = collection(db, "users", uid, "logs");
+
+    // Use the streak that applied on `dateStr`, not today's streak, for deterministic catch-up XP.
+    const previousLogsQ = query(logsRef, orderBy(documentId(), "desc"), startAfter(dateStr), limit(365));
+    const previousLogsSnap = await getDocs(previousLogsQ);
+    const previousActivityByDate = new Map<string, boolean>(
+        previousLogsSnap.docs.map((d) => [d.id, dayHasActivity((d.data() as DayLog).entries)]),
+    );
+
+    let streakForDate = 0;
+    let cursorDate = dateStr;
+    for (let i = 0; i < 365; i++) {
+        const isActive = cursorDate === dateStr ? true : previousActivityByDate.get(cursorDate) === true;
+        if (!isActive) break;
+        streakForDate += 1;
+        cursorDate = shiftDateStrByDays(cursorDate, -1);
+    }
 
     return runTransaction(db, async (tx) => {
         const [logSnap, statsSnap] = await Promise.all([tx.get(logRef), tx.get(statsRef)]);
@@ -172,15 +203,22 @@ export async function finalizeDayWithHealth(
         const stats = statsSnap.exists() ? (statsSnap.data() as UserStats) : null;
 
         const currentHealth = stats?.treeHealth ?? 50;
+        const currentLevel = stats?.treeLevel ?? 1;
+        const currentXp = stats?.treeXp ?? 0;
 
         // If there is nothing logged, do not finalize.
         if (!log?.loggedAt) {
-            return { applied: false, newHealth: currentHealth };
+            return { applied: false, newHealth: currentHealth, newLevel: currentLevel, newXp: currentXp };
         }
 
         // Already finalized: idempotent no-op.
         if (log.finalizedAt) {
-            return { applied: false, newHealth: currentHealth };
+            return { applied: false, newHealth: currentHealth, newLevel: currentLevel, newXp: currentXp };
+        }
+
+        // Keep finalization aligned with "active day" semantics used for streak/day counts.
+        if (!dayHasActivity(log.entries)) {
+            return { applied: false, newHealth: currentHealth, newLevel: currentLevel, newXp: currentXp };
         }
 
         const habitCount = log.habitCount ?? habitCountFallback;
@@ -188,19 +226,17 @@ export async function finalizeDayWithHealth(
         const newHealth = applyDailyScoreToHealth(currentHealth, dailyScore, habits, habitCount);
 
         // Level/XP progression (user-facing, no hard cap like % health).
-        let currentLevel = stats?.treeLevel ?? 1;
-        let currentXp = stats?.treeXp ?? 0;
         const rolled = normalizeTreeLevelAndXp(currentLevel, currentXp);
-        currentLevel = rolled.treeLevel;
-        currentXp = rolled.treeXp;
+        const normalizedLevel = rolled.treeLevel;
+        const normalizedXp = rolled.treeXp;
 
         const quality = (normalizeDailyScore(dailyScore, habits, habitCount) + 1) / 2; // 0..1
         const baseXpGain = Math.round(8 + quality * 16); // 8..24 per day
-        const streakMultiplier = getStreakXpMultiplier(stats?.currentStreak ?? 0);
+        const streakMultiplier = getStreakXpMultiplier(streakForDate);
         const xpGain = Math.round(baseXpGain * streakMultiplier);
 
-        let nextLevel = currentLevel;
-        let nextXp = currentXp + xpGain;
+        let nextLevel = normalizedLevel;
+        let nextXp = normalizedXp + xpGain;
 
         while (nextXp >= getXpToNextLevel(nextLevel)) {
             nextXp -= getXpToNextLevel(nextLevel);
@@ -212,7 +248,7 @@ export async function finalizeDayWithHealth(
         tx.set(statsRef, { treeHealth: newHealth, treeLevel: nextLevel, treeXp: nextXp }, { merge: true });
         tx.set(logRef, { finalizedAt }, { merge: true });
 
-        return { applied: true, newHealth };
+        return { applied: true, newHealth, newLevel: nextLevel, newXp: nextXp };
     });
 }
 

@@ -13,7 +13,6 @@ import {
     finalizeDayWithHealth,
     getDayLog,
     getHabits,
-    getRecentDayLogs,
     getRecentDayLogsBefore,
     getTodayStr,
     getUserStats,
@@ -27,7 +26,7 @@ import {
     getXpToNextLevel,
 } from "@/lib/treeProgression";
 import { DayLog, Habit, UserStats } from "@/lib/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -48,6 +47,12 @@ export default function DashboardPage() {
     const [editingHabit, setEditingHabit] = useState<Habit | undefined>(undefined);
 
     const [todayStr, setTodayStr] = useState(getTodayStr());
+    const dayLogEntriesRef = useRef<DayLog["entries"]>({});
+    const toggleWriteQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+    useEffect(() => {
+        dayLogEntriesRef.current = dayLog.entries;
+    }, [dayLog.entries]);
 
     const computeCurrentStreakFromLogDates = (logDates: Set<string>, anchorDateStr: string) => {
         let streak = 0;
@@ -90,13 +95,17 @@ export default function DashboardPage() {
 
                 if (toFinalize.length > 0) {
                     let lastHealth = nextStats.treeHealth;
+                    let lastLevel = nextStats.treeLevel;
+                    let lastXp = nextStats.treeXp;
                     for (const { dateStr, log } of toFinalize) {
                         const habitCount = log.habitCount ?? fetchedHabits.length;
                         const res = await finalizeDayWithHealth(user.uid, dateStr, fetchedHabits, habitCount);
                         // Keep local copy in sync (transaction reads/writes the source of truth).
                         lastHealth = res.newHealth;
+                        lastLevel = res.newLevel;
+                        lastXp = res.newXp;
                     }
-                    nextStats = { ...nextStats, treeHealth: lastHealth };
+                    nextStats = { ...nextStats, treeHealth: lastHealth, treeLevel: lastLevel, treeXp: lastXp };
                 }
             }
 
@@ -144,7 +153,7 @@ export default function DashboardPage() {
             const habitCount = log.habitCount ?? fallbackHabitCount;
             const res = await finalizeDayWithHealth(user.uid, dateStr, habits, habitCount);
 
-            setStats((prev) => ({ ...prev, treeHealth: res.newHealth }));
+            setStats((prev) => ({ ...prev, treeHealth: res.newHealth, treeLevel: res.newLevel, treeXp: res.newXp }));
             if (res.applied && dateStr === todayStr) {
                 setDayLog((prev) => ({ ...prev, finalizedAt: new Date().toISOString() }));
             }
@@ -176,14 +185,18 @@ export default function DashboardPage() {
         if (dayLog.finalizedAt) return;
         if (habits.length === 0) return;
 
-        const wasActiveBefore = dayHasActivity(dayLog.entries);
+        const previousEntries = dayLogEntriesRef.current;
+        const wasActiveBefore = dayHasActivity(previousEntries);
 
         // Optimistic update
-        const newEntries = { ...dayLog.entries, [habitId]: newTargetStatus };
+        const newEntries = { ...previousEntries, [habitId]: newTargetStatus };
 
         // Calculate new tree score
         const dailyScore = calculateTreeHealth(newEntries, habits);
         const isActiveNow = dayHasActivity(newEntries);
+        const didActiveStateChange = wasActiveBefore !== isActiveNow;
+
+        dayLogEntriesRef.current = newEntries;
 
         setDayLog((prev) => ({
             ...prev,
@@ -193,9 +206,14 @@ export default function DashboardPage() {
             loggedAt: prev.loggedAt || new Date().toISOString(),
         }));
 
-        try {
+        const persistToggle = async () => {
             await saveDayLog(user.uid, todayStr, newEntries, dailyScore, habits.length);
-            const recent = await getRecentDayLogs(user.uid, 90);
+            // No read/recompute required if the day remains active or remains inactive.
+            if (!didActiveStateChange) {
+                return;
+            }
+
+            const recent = await getRecentDayLogsBefore(user.uid, shiftDateByDays(todayStr, 1), 90);
             const activeDateSet = new Set(
                 recent.filter((r) => dayHasActivity(r.log.entries || {})).map((r) => r.dateStr),
             );
@@ -204,19 +222,35 @@ export default function DashboardPage() {
             else activeDateSet.delete(todayStr);
 
             const currentStreak = computeCurrentStreakFromLogDates(activeDateSet, todayStr);
-            const totalDaysLogged = Math.max(
-                0,
-                stats.totalDaysLogged + (isActiveNow ? 1 : 0) - (wasActiveBefore ? 1 : 0),
-            );
-            const longestStreak = Math.max(stats.longestStreak, currentStreak);
-            const nextStats = { currentStreak, longestStreak, totalDaysLogged };
-            setStats((prev) => ({ ...prev, ...nextStats }));
-            await updateUserStats(user.uid, nextStats);
+            setStats((prev) => {
+                const totalDaysLogged = Math.max(
+                    0,
+                    prev.totalDaysLogged + (isActiveNow ? 1 : 0) - (wasActiveBefore ? 1 : 0),
+                );
+                const longestStreak = Math.max(prev.longestStreak, currentStreak);
+                const nextStats = { currentStreak, longestStreak, totalDaysLogged };
+                void updateUserStats(user.uid, nextStats);
+                return { ...prev, ...nextStats };
+            });
+        };
+
+        try {
+            toggleWriteQueueRef.current = toggleWriteQueueRef.current.then(persistToggle, persistToggle);
+            await toggleWriteQueueRef.current;
         } catch (e) {
             console.error("Failed to save habit toggle", e);
             // Revert on failure (simple reload for now)
             loadData();
         }
+    };
+
+    const shiftDateByDays = (dateStr: string, deltaDays: number) => {
+        const d = new Date(`${dateStr}T00:00:00`);
+        d.setDate(d.getDate() + deltaDays);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
     };
 
     const effectiveTreeHealth = (() => {

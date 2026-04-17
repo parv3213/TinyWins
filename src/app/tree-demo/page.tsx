@@ -4,7 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import Header from "@/components/Header";
 import PageShell from "@/components/PageShell";
 import TreeCanvas from "@/components/tree/TreeCanvas";
-import { getTreeLevelFromXp, getTreePhaseFromXp, getTreePhaseLabel } from "@/lib/treeProgression";
+import { getTreeLevelFromLifetimeXp, getTreePhaseFromXp, getTreePhaseLabel } from "@/lib/treeProgression";
 import { useMemo, useState } from "react";
 
 const XP_MIN = 0;
@@ -17,7 +17,7 @@ export default function TreeDemoPage() {
     const [health, setHealth] = useState(70);
 
     const phase = useMemo(() => getTreePhaseFromXp(xp), [xp]);
-    const level = useMemo(() => getTreeLevelFromXp(xp), [xp]);
+    const level = useMemo(() => getTreeLevelFromLifetimeXp(xp), [xp]);
 
     const applyPreset = (nextXp: number, nextHealth: number) => {
         setXp(nextXp);
@@ -104,7 +104,9 @@ export default function TreeDemoPage() {
                     <h2 className="text-base">Comparison Presets</h2>
 
                     <div className="mt-4">
-                        <h3 className="text-sm font-medium text-[var(--muted-fg)]">Phase ladder (health fixed at 75)</h3>
+                        <h3 className="text-sm font-medium text-[var(--muted-fg)]">
+                            Phase ladder (health fixed at 75)
+                        </h3>
                         <div className="mt-2 flex flex-wrap gap-2">
                             <button className="btn btn-ghost" onClick={() => applyPreset(0, 75)}>
                                 Seed

@@ -1,11 +1,11 @@
 "use client";
 
 import {
-    type TreePhase,
     STREAK_XP_MULTIPLIER_CAP,
     getEstimatedDaysToMatureTreeRange,
     getStreakXpMultiplier,
     getTreePhaseLabel,
+    type TreePhase,
 } from "@/lib/treeProgression";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { TreeRenderer } from "./treeRenderer";
@@ -333,7 +333,7 @@ export default function TreeCanvas({
                         type="button"
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card)]/95 text-[var(--muted-fg)] shadow-[0_1px_3px_rgba(74,63,53,0.08)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--fg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
                         aria-expanded={growthTipOpen}
-                        aria-controls="tree-growth-tip"
+                        aria-controls={growthTipOpen ? "tree-growth-tip" : undefined}
                         aria-label="Show how tree growth and streaks work"
                         title="Growth tips"
                         onClick={toggleGrowthTipPin}
