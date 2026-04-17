@@ -2,7 +2,7 @@
 
 import TreeCanvas from "@/components/tree/TreeCanvas";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTreePhaseFromXp } from "@/lib/treeProgression";
+import { getTreePhaseFromLevel } from "@/lib/treeProgression";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -27,8 +27,8 @@ export default function LandingPage() {
 
     // Pre-configured healthy tree for the landing page demo
     const DEMO_HEALTH = 85;
-    const DEMO_XP = 520;
-    const demoPhase = getTreePhaseFromXp(DEMO_XP);
+    const DEMO_LEVEL = 5;
+    const demoPhase = getTreePhaseFromLevel(DEMO_LEVEL);
 
     return (
         <div className="min-h-screen relative overflow-hidden flex flex-col">

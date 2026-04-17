@@ -15,6 +15,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
         pathname === "/login" ||
         pathname === "/terms" ||
         pathname === "/privacy" ||
+        pathname === "/tree-demo" ||
         pathname.startsWith("/profile/");
 
     useEffect(() => {
