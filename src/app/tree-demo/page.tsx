@@ -44,7 +44,7 @@ export default function TreeDemoPage() {
                 </section>
 
                 <section>
-                    <TreeCanvas health={health} phase={phase} />
+                    <TreeCanvas health={health} phase={phase} currentStreak={4} />
                 </section>
 
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -101,26 +101,62 @@ export default function TreeDemoPage() {
                 </section>
 
                 <section className="card-flat p-5">
-                    <h2 className="text-base">Quick Presets</h2>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        <button className="btn btn-ghost" onClick={() => applyPreset(0, 25)}>
-                            Seed + Low Health
-                        </button>
-                        <button className="btn btn-ghost" onClick={() => applyPreset(120, 78)}>
-                            Seed + High Health
-                        </button>
-                        <button className="btn btn-ghost" onClick={() => applyPreset(260, 65)}>
-                            Sapling + Mid Health
-                        </button>
-                        <button className="btn btn-ghost" onClick={() => applyPreset(360, 90)}>
-                            Sapling + Flourishing
-                        </button>
-                        <button className="btn btn-ghost" onClick={() => applyPreset(620, 82)}>
-                            Tree + Healthy
-                        </button>
-                        <button className="btn btn-ghost" onClick={() => applyPreset(980, 15)}>
-                            Tree + Dying
-                        </button>
+                    <h2 className="text-base">Comparison Presets</h2>
+
+                    <div className="mt-4">
+                        <h3 className="text-sm font-medium text-[var(--muted-fg)]">Phase ladder (health fixed at 75)</h3>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <button className="btn btn-ghost" onClick={() => applyPreset(0, 75)}>
+                                Seed
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(60, 75)}>
+                                Sprout
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(185, 75)}>
+                                Sapling
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(335, 75)}>
+                                Young Tree
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(520, 75)}>
+                                Mature Tree
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-5">
+                        <h3 className="text-sm font-medium text-[var(--muted-fg)]">
+                            Health ladder (phase fixed at mature tree)
+                        </h3>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <button className="btn btn-ghost" onClick={() => applyPreset(520, 10)}>
+                                Dying 10
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(520, 30)}>
+                                Struggling 30
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(520, 50)}>
+                                Growing 50
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(520, 75)}>
+                                Healthy 75
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(520, 95)}>
+                                Flourishing 95
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-5">
+                        <h3 className="text-sm font-medium text-[var(--muted-fg)]">Edge cases</h3>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <button className="btn btn-ghost" onClick={() => applyPreset(0, 15)}>
+                                Seed + Low Health
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => applyPreset(520, 5)}>
+                                Mature + Dying
+                            </button>
+                        </div>
                     </div>
                 </section>
             </main>

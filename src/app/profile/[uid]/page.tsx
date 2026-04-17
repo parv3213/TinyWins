@@ -154,7 +154,11 @@ export default function ProfilePage({ params }: { params: { uid: string } | Prom
             <main className="flex flex-col gap-6">
                 {/* Tree Gamification Widget */}
                 <section className="animate-slideUp" style={{ animationDelay: "100ms" }}>
-                    <TreeCanvas health={stats.treeHealth} phase={treePhase} />
+                    <TreeCanvas
+                        health={stats.treeHealth}
+                        phase={treePhase}
+                        currentStreak={stats.currentStreak}
+                    />
                 </section>
 
                 {/* Quick Stats Grid */}

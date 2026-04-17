@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { applyDailyScoreToHealth, normalizeDailyScore } from "./analytics";
 import { db } from "./firebase";
-import { getStreakXpMultiplier, getXpToNextLevel } from "./treeProgression";
+import { getStreakXpMultiplier, getXpToNextLevel, normalizeTreeLevelAndXp } from "./treeProgression";
 import { DayLog, Habit, UserStats } from "./types";
 
 // Constants
@@ -188,8 +188,11 @@ export async function finalizeDayWithHealth(
         const newHealth = applyDailyScoreToHealth(currentHealth, dailyScore, habits, habitCount);
 
         // Level/XP progression (user-facing, no hard cap like % health).
-        const currentLevel = stats?.treeLevel ?? 1;
-        const currentXp = stats?.treeXp ?? 0;
+        let currentLevel = stats?.treeLevel ?? 1;
+        let currentXp = stats?.treeXp ?? 0;
+        const rolled = normalizeTreeLevelAndXp(currentLevel, currentXp);
+        currentLevel = rolled.treeLevel;
+        currentXp = rolled.treeXp;
 
         const quality = (normalizeDailyScore(dailyScore, habits, habitCount) + 1) / 2; // 0..1
         const baseXpGain = Math.round(8 + quality * 16); // 8..24 per day
@@ -238,6 +241,10 @@ export async function getUserStats(uid: string): Promise<UserStats | null> {
     merged.treeHealth = Number.isFinite(Number(merged.treeHealth)) ? Number(merged.treeHealth) : defaults.treeHealth;
     merged.treeLevel = Number.isFinite(Number(merged.treeLevel)) ? Number(merged.treeLevel) : defaults.treeLevel;
     merged.treeXp = Number.isFinite(Number(merged.treeXp)) ? Number(merged.treeXp) : defaults.treeXp;
+
+    const norm = normalizeTreeLevelAndXp(merged.treeLevel ?? 1, merged.treeXp ?? 0);
+    merged.treeLevel = norm.treeLevel;
+    merged.treeXp = norm.treeXp;
 
     return merged;
 }

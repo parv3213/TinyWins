@@ -270,7 +270,11 @@ export default function DashboardPage() {
                             <div className="spinner"></div>
                         </div>
                     ) : (
-                        <TreeCanvas health={effectiveTreeHealth} phase={treePhase} />
+                        <TreeCanvas
+                            health={effectiveTreeHealth}
+                            phase={treePhase}
+                            currentStreak={stats.currentStreak}
+                        />
                     )}
                 </section>
 

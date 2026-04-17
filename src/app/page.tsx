@@ -1,8 +1,8 @@
 "use client";
 
+import GrowthDemoHabits from "@/components/tree/GrowthDemoHabits";
 import TreeCanvas from "@/components/tree/TreeCanvas";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTreePhaseFromLevel } from "@/lib/treeProgression";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -24,11 +24,6 @@ export default function LandingPage() {
             </div>
         );
     }
-
-    // Pre-configured healthy tree for the landing page demo
-    const DEMO_HEALTH = 85;
-    const DEMO_LEVEL = 5;
-    const demoPhase = getTreePhaseFromLevel(DEMO_LEVEL);
 
     return (
         <div className="min-h-screen relative overflow-hidden flex flex-col">
@@ -67,30 +62,8 @@ export default function LandingPage() {
                 {/* Demo Tree Canvas */}
                 <div className="relative max-w-sm mx-auto w-full transition-transform hover:scale-[1.02] duration-500 cursor-default">
                     <div className="absolute -inset-4 bg-[var(--primary)] blur-[60px] opacity-10 rounded-full z-[-1]"></div>
-                    <TreeCanvas health={DEMO_HEALTH} phase={demoPhase} />
-
-                    {/* Floating mock-habits */}
-                    <div
-                        className="absolute -right-6 top-1/4 bg-[var(--card)] p-2 rounded-xl border border-[var(--border)] shadow-md animate-slideUp flex items-center gap-2"
-                        style={{ animationDelay: "500ms" }}
-                    >
-                        <span className="w-6 h-6 flex justify-center items-center rounded-full bg-[var(--success-light)] text-xs">
-                            💧
-                        </span>
-                        <span className="text-xs font-medium">Water</span>
-                        <span className="text-[var(--success)] text-xs ml-1">✓</span>
-                    </div>
-
-                    <div
-                        className="absolute -left-6 bottom-1/3 bg-[var(--card)] p-2 rounded-xl border border-[var(--border)] shadow-md animate-slideUp flex items-center gap-2"
-                        style={{ animationDelay: "800ms" }}
-                    >
-                        <span className="w-6 h-6 flex justify-center items-center rounded-full bg-[var(--success-light)] text-xs">
-                            📖
-                        </span>
-                        <span className="text-xs font-medium">Read</span>
-                        <span className="text-[var(--success)] text-xs ml-1">✓</span>
-                    </div>
+                    <TreeCanvas growthCycleDemo showGrowthTip={false} />
+                    <GrowthDemoHabits />
                 </div>
 
                 {/* Features */}
