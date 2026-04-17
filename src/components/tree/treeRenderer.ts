@@ -16,6 +16,7 @@ export class TreeRenderer {
     private treeSeed: number = 1;
     private rngState: number = 1;
     private dpr: number = 1;
+    private remainingBranchBudget: number = 0;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -43,7 +44,8 @@ export class TreeRenderer {
         this.width = width;
         this.height = height;
 
-        this.dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+        const rawDpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+        this.dpr = Math.min(2, rawDpr);
         const pixelWidth = Math.max(1, Math.round(width * this.dpr));
         const pixelHeight = Math.max(1, Math.round(height * this.dpr));
 
@@ -64,9 +66,10 @@ export class TreeRenderer {
 
         const phaseWeight = this.getPhaseWeight(this.displayPhaseIndex);
         const particleChance = 0.015 + this.displayHealth * 0.00025 + phaseWeight * 0.025;
+        const maxParticles = 70;
 
         // Spawn particles based on health
-        if (Math.random() < particleChance) {
+        if (this.particles.length < maxParticles && Math.random() < particleChance) {
             if (this.displayHealth > 70) {
                 // Flourishing - butterflies and sparkles
                 if (Math.random() > 0.5) {
@@ -126,6 +129,7 @@ export class TreeRenderer {
         const maxBranches = Math.floor(
             phaseParams.branchDepthMin + (this.displayHealth / 100) * phaseParams.branchDepthSpread,
         );
+        const clampedMaxBranches = Math.min(8, Math.max(2, maxBranches));
         const trunkThickness =
             phaseParams.trunkThicknessMin + (this.displayHealth / 100) * phaseParams.trunkThicknessSpread;
         const trunkHeight =
@@ -162,8 +166,11 @@ export class TreeRenderer {
         // Translate after scaling without scaling the translation distance.
         this.ctx.translate(this.width / 2 / viewScale, (this.height - groundPad) / viewScale);
 
+        // Keep recursion bounded to avoid exponential work at high growth settings.
+        this.remainingBranchBudget = Math.round(280 + this.displayHealth * 2.2 + this.displayPhaseIndex * 130);
+
         // Draw the tree recursively
-        this.drawBranch(0, trunkHeight, trunkThickness, 0, maxBranches, trunkColor, leafColor, phaseParams);
+        this.drawBranch(0, trunkHeight, trunkThickness, 0, clampedMaxBranches, trunkColor, leafColor, phaseParams);
 
         this.ctx.restore();
 
@@ -181,6 +188,9 @@ export class TreeRenderer {
         leafColor: string,
         phaseParams: ReturnType<TreeRenderer["getPhaseParams"]>,
     ) {
+        if (this.remainingBranchBudget <= 0) return;
+        this.remainingBranchBudget -= 1;
+
         this.ctx.save();
 
         // Add wind sway effect
@@ -209,8 +219,10 @@ export class TreeRenderer {
                 1,
                 Math.round(branchCountBase + (this.displayHealth / 100) * 0.8 + this.random() * branchCountSpread),
             );
+            const limitedBranchCount = Math.min(3, branchCount);
 
-            for (let i = 0; i < branchCount; i++) {
+            for (let i = 0; i < limitedBranchCount; i++) {
+                if (this.remainingBranchBudget <= 0) break;
                 const spread =
                     0.25 + phaseParams.spreadBase + (this.displayHealth / 100) * phaseParams.spreadHealthBoost;
                 const newAngle = (this.random() - 0.5) * spread;
