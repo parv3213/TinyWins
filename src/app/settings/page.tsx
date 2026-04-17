@@ -213,7 +213,7 @@ export default function SettingsPage() {
          Link copied to clipboard!
       </div>
 
-      <BottomNav activePath="/settings" />
+      <BottomNav />
     </PageShell>
   );
 }

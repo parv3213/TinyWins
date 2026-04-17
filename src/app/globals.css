@@ -120,7 +120,9 @@ body {
 }
 
 /* ---------- Typography ---------- */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: var(--font-heading);
   color: var(--fg);
   letter-spacing: -0.01em;
@@ -535,8 +537,13 @@ a.btn-danger:focus-visible {
 
 /* ---------- Animations ---------- */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
@@ -544,6 +551,7 @@ a.btn-danger:focus-visible {
     transform: translateY(12px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -555,6 +563,7 @@ a.btn-danger:focus-visible {
     transform: translateY(-12px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -562,29 +571,61 @@ a.btn-danger:focus-visible {
 }
 
 @keyframes scaleBounce {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.08); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes glowPulse {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* ---------- Animation Utilities ---------- */
@@ -601,16 +642,45 @@ a.btn-danger:focus-visible {
 }
 
 /* Staggered card entrance */
-.stagger-1 { animation-delay: 0ms; }
-.stagger-2 { animation-delay: 50ms; }
-.stagger-3 { animation-delay: 100ms; }
-.stagger-4 { animation-delay: 150ms; }
-.stagger-5 { animation-delay: 200ms; }
-.stagger-6 { animation-delay: 250ms; }
-.stagger-7 { animation-delay: 300ms; }
-.stagger-8 { animation-delay: 350ms; }
-.stagger-9 { animation-delay: 400ms; }
-.stagger-10 { animation-delay: 450ms; }
+.stagger-1 {
+  animation-delay: 0ms;
+}
+
+.stagger-2 {
+  animation-delay: 50ms;
+}
+
+.stagger-3 {
+  animation-delay: 100ms;
+}
+
+.stagger-4 {
+  animation-delay: 150ms;
+}
+
+.stagger-5 {
+  animation-delay: 200ms;
+}
+
+.stagger-6 {
+  animation-delay: 250ms;
+}
+
+.stagger-7 {
+  animation-delay: 300ms;
+}
+
+.stagger-8 {
+  animation-delay: 350ms;
+}
+
+.stagger-9 {
+  animation-delay: 400ms;
+}
+
+.stagger-10 {
+  animation-delay: 450ms;
+}
 
 /* ---------- Layout Utilities ---------- */
 .app-container {
@@ -620,16 +690,38 @@ a.btn-danger:focus-visible {
   padding: 0 var(--space-4);
 }
 
+/* ---------- Footer / Site chrome ---------- */
+.site-footer {
+  background: linear-gradient(180deg, rgba(47, 93, 80, 0.02), rgba(0, 0, 0, 0));
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 18px rgba(18, 16, 12, 0.02);
+  background-color: var(--card);
+}
+
+.site-footer h4 {
+  color: var(--fg);
+  margin: 0 0 6px 0;
+}
+
+.site-footer a {
+  color: inherit;
+}
+
+.site-footer ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.site-footer .badge {
+  box-shadow: var(--shadow-sm);
+}
+
 /* ---------- App shell helpers ---------- */
 .page-shell {
   width: 100%;
   min-height: 100dvh;
-  padding-bottom: calc(
-    var(--bottom-nav-height) +
-    env(safe-area-inset-bottom, 0px) +
-    var(--space-6) +
-    var(--fab-size)
-  );
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-6) + var(--fab-size));
 }
 
 .bottom-nav {
@@ -653,10 +745,8 @@ a.btn-danger:focus-visible {
 
 .fab {
   position: fixed;
-  right: max(
-    var(--space-4),
-    calc((100vw - var(--app-container-max)) / 2 + var(--space-4))
-  );
+  right: max(var(--space-4),
+      calc((100vw - var(--app-container-max)) / 2 + var(--space-4)));
   bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-4));
   width: var(--fab-size);
   height: var(--fab-size);
@@ -761,14 +851,23 @@ a.btn-danger:focus-visible {
 
 /* ---------- Responsive ---------- */
 @media (min-width: 480px) {
-  :root { --app-container-max: 520px; }
+  :root {
+    --app-container-max: 520px;
+  }
 }
 
 @media (min-width: 768px) {
-  :root { --app-container-max: 600px; }
+  :root {
+    --app-container-max: 600px;
+  }
 
-  h1 { font-size: 2.75rem; }
-  h2 { font-size: 2rem; }
+  h1 {
+    font-size: 2.75rem;
+  }
+
+  h2 {
+    font-size: 2rem;
+  }
 
   .modal-overlay {
     align-items: center;
@@ -781,7 +880,9 @@ a.btn-danger:focus-visible {
 }
 
 @media (min-width: 1024px) {
-  :root { --app-container-max: 700px; }
+  :root {
+    --app-container-max: 700px;
+  }
 }
 
 /* ---------- Scrollbar ---------- */

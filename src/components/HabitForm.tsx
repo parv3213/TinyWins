@@ -20,6 +20,11 @@ export default function HabitForm({ onClose, onSuccess, existingHabit }: HabitFo
 
   const isEditing = !!existingHabit;
 
+  const handleRequestClose = () => {
+    if (loading) return;
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -66,17 +71,24 @@ export default function HabitForm({ onClose, onSuccess, existingHabit }: HabitFo
       onSuccess();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to delete habit.');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleRequestClose();
+      }}
+    >
       <div className="modal-content relative">
         <div className="modal-handle"></div>
         <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-[var(--muted-fg)] hover:text-[var(--fg)] transition-colors"
+          onClick={handleRequestClose}
+          className="absolute top-4 right-4 p-2 text-[var(--muted-fg)] hover:text-[var(--fg)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading}
         >
           ✕
         </button>
