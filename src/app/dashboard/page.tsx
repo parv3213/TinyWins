@@ -12,6 +12,7 @@ import AddHabitButton from '@/components/AddHabitButton';
 import HabitForm from '@/components/HabitForm';
 import TreeCanvas from '@/components/tree/TreeCanvas';
 import PageShell from '@/components/PageShell';
+import { getTreePhaseFromXp } from '@/lib/treeProgression';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -203,6 +204,7 @@ export default function DashboardPage() {
 
   const treeLevel = stats.treeLevel ?? 1;
   const treeXp = stats.treeXp ?? 0;
+  const treePhase = getTreePhaseFromXp(treeXp);
   const xpToNext = 100 + Math.max(0, treeLevel - 1) * 25;
   const xpPct = xpToNext > 0 ? Math.min(100, Math.round((treeXp / xpToNext) * 100)) : 0;
   const healthLabel =
@@ -239,7 +241,7 @@ export default function DashboardPage() {
               <div className="spinner"></div>
             </div>
           ) : (
-            <TreeCanvas health={effectiveTreeHealth} />
+            <TreeCanvas health={effectiveTreeHealth} phase={treePhase} />
           )}
         </section>
 

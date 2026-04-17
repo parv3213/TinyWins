@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { TreeRenderer } from './treeRenderer';
+import { TreePhase, getTreePhaseLabel } from '@/lib/treeProgression';
 
 interface TreeCanvasProps {
   health: number; // 0 to 100
+  phase?: TreePhase;
 }
 
-export default function TreeCanvas({ health }: TreeCanvasProps) {
+export default function TreeCanvas({ health, phase }: TreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<TreeRenderer | null>(null);
@@ -88,6 +90,12 @@ export default function TreeCanvas({ health }: TreeCanvasProps) {
     }
   }, [health]);
 
+  useEffect(() => {
+    if (rendererRef.current && phase) {
+      rendererRef.current.setPhase(phase);
+    }
+  }, [phase]);
+
   if (!isClient) {
     return (
       <div className="w-full h-64 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center">
@@ -157,10 +165,11 @@ export default function TreeCanvas({ health }: TreeCanvasProps) {
       {/* State Badge */}
       <div className="absolute top-4 left-4 z-30 bg-[var(--card)]/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-[var(--border)] shadow-sm">
         <span className="text-sm font-medium text-[var(--fg)]">
-          {health >= 80 ? '🌳 Flourishing' : 
-           health >= 60 ? '🌲 Healthy' : 
-           health >= 40 ? '🌿 Growing' : 
-           health >= 20 ? '🥀 Struggling' : '🪵 Dying'}
+          {phase ? `${getTreePhaseLabel(phase)} • ` : ''}
+          {health >= 80 ? 'Flourishing' : 
+           health >= 60 ? 'Healthy' : 
+           health >= 40 ? 'Growing' : 
+           health >= 20 ? 'Struggling' : 'Dying'}
         </span>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { getUserStats } from '@/lib/habits';
 import { UserStats } from '@/lib/types';
 import TreeCanvas from '@/components/tree/TreeCanvas';
 import PageShell from '@/components/PageShell';
+import { getTreePhaseFromXp } from '@/lib/treeProgression';
 
 type PublicUserDoc = {
   displayName?: string | null;
@@ -106,6 +107,7 @@ export default function ProfilePage({
 
   const trackingYear = useMemo(() => yearFromCreatedAt(profile?.createdAt), [profile?.createdAt]);
   const displayName = profile?.displayName || 'Forester';
+  const treePhase = getTreePhaseFromXp(stats?.treeXp ?? 0);
 
   if (!uid || loading) {
     return (
@@ -155,7 +157,7 @@ export default function ProfilePage({
         
         {/* Tree Gamification Widget */}
         <section className="animate-slideUp" style={{ animationDelay: '100ms' }}>
-          <TreeCanvas health={stats.treeHealth} />
+          <TreeCanvas health={stats.treeHealth} phase={treePhase} />
         </section>
 
         {/* Quick Stats Grid */}

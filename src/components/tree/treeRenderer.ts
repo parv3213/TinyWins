@@ -1,4 +1,5 @@
 import { Particle, Butterfly, Insect, Sparkle } from './particles';
+import { TreePhase } from '@/lib/treeProgression';
 
 export class TreeRenderer {
   private canvas: HTMLCanvasElement;
@@ -6,6 +7,7 @@ export class TreeRenderer {
   private width: number;
   private height: number;
   private health: number; 
+  private phase: TreePhase = 'seed';
   private particles: Particle[] = [];
   private time: number = 0;
   private treeSeed: number = 1;
@@ -23,6 +25,11 @@ export class TreeRenderer {
 
   setHealth(health: number) {
     this.health = Math.max(0, Math.min(100, health));
+    this.setTreeSeed();
+  }
+
+  setPhase(phase: TreePhase) {
+    this.phase = phase;
     this.setTreeSeed();
   }
 
@@ -74,11 +81,24 @@ export class TreeRenderer {
   draw() {
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.rngState = this.treeSeed;
+
+    if (this.phase === 'seed') {
+      this.drawSeedStage();
+      this.particles.forEach((p) => p.draw(this.ctx));
+      return;
+    }
     
     // Calculate global tree parameters based on health
-    const maxBranches = Math.floor(6 + (this.health / 100) * 8); // 6 to 14 recursive depth
-    const trunkThickness = 15 + (this.health / 100) * 20;
-    const trunkHeight = this.height * 0.25 + (this.health / 100) * this.height * 0.1;
+    const isSapling = this.phase === 'sapling';
+    const maxBranches = isSapling
+      ? Math.floor(3 + (this.health / 100) * 3)
+      : Math.floor(6 + (this.health / 100) * 8); // mature tree depth
+    const trunkThickness = isSapling
+      ? 7 + (this.health / 100) * 8
+      : 15 + (this.health / 100) * 20;
+    const trunkHeight = isSapling
+      ? this.height * 0.2 + (this.health / 100) * this.height * 0.08
+      : this.height * 0.25 + (this.health / 100) * this.height * 0.1;
     
     // Colors
     let trunkColor = '#5c4033'; // Base brown
@@ -93,8 +113,10 @@ export class TreeRenderer {
     // Default "zoomed out" view with a bit of ground padding.
     // Healthier trees get bigger (more depth, thicker trunk, bigger leaves),
     // so we zoom out a bit more as health increases to avoid clipping.
-    const viewScale = Math.min(0.9, Math.max(0.72, 0.9 - (this.health / 100) * 0.18));
-    const groundPad = 26;
+    const viewScale = isSapling
+      ? Math.min(0.95, Math.max(0.82, 0.95 - (this.health / 100) * 0.1))
+      : Math.min(0.9, Math.max(0.72, 0.9 - (this.health / 100) * 0.18));
+    const groundPad = isSapling ? 20 : 26;
 
     this.ctx.save();
     this.ctx.scale(viewScale, viewScale);
@@ -102,7 +124,7 @@ export class TreeRenderer {
     this.ctx.translate((this.width / 2) / viewScale, (this.height - groundPad) / viewScale);
     
     // Draw the tree recursively
-    this.drawBranch(0, trunkHeight, trunkThickness, 0, maxBranches, trunkColor, leafColor);
+    this.drawBranch(0, trunkHeight, trunkThickness, 0, maxBranches, trunkColor, leafColor, this.phase);
     
     this.ctx.restore();
 
@@ -110,7 +132,7 @@ export class TreeRenderer {
     this.particles.forEach(p => p.draw(this.ctx));
   }
 
-  private drawBranch(level: number, length: number, thickness: number, angle: number, maxLevel: number, trunkColor: string, leafColor: string) {
+  private drawBranch(level: number, length: number, thickness: number, angle: number, maxLevel: number, trunkColor: string, leafColor: string, phase: TreePhase) {
     this.ctx.save();
     
     // Add wind sway effect
@@ -133,7 +155,9 @@ export class TreeRenderer {
     if (level < maxLevel) {
       // Branch out
       // Higher health = more branches
-      const branchCount = this.health < 30 ? 2 : (this.health > 80 ? Math.floor(this.random() * 2) + 2 : 2);
+      const branchCount = phase === 'sapling'
+        ? 1 + Math.floor(this.random() * 2)
+        : (this.health < 30 ? 2 : (this.health > 80 ? Math.floor(this.random() * 2) + 2 : 2));
       
       for (let i = 0; i < branchCount; i++) {
         const spread = 0.3 + (this.health / 100) * 0.6; // Angle spread
@@ -141,7 +165,7 @@ export class TreeRenderer {
         const newLength = length * (0.6 + this.random() * 0.2);
         const newThickness = thickness * 0.65;
         
-        this.drawBranch(level + 1, newLength, newThickness, newAngle, maxLevel, trunkColor, leafColor);
+        this.drawBranch(level + 1, newLength, newThickness, newAngle, maxLevel, trunkColor, leafColor, phase);
       }
     } else {
       // Leaf/Fruit rendering at branch tips
@@ -150,7 +174,9 @@ export class TreeRenderer {
         this.ctx.globalAlpha = 0.8;
         
         // Draw leaf
-        const leafSize = 10 + (this.health / 100) * 15;
+        const leafSize = phase === 'sapling'
+          ? 6 + (this.health / 100) * 8
+          : 10 + (this.health / 100) * 15;
         this.ctx.beginPath();
         if (this.health > 60) {
             // Fluffy round leaves for healthy trees
@@ -185,11 +211,12 @@ export class TreeRenderer {
 
   private setTreeSeed() {
     const healthBucket = Math.round(this.health / 5); // stable-ish changes
+    const phaseFactor = this.phase === 'seed' ? 1 : (this.phase === 'sapling' ? 2 : 3);
     const w = Math.max(1, Math.floor(this.width));
     const h = Math.max(1, Math.floor(this.height));
     // cheap hash -> 32-bit seed
     let seed = 2166136261;
-    seed ^= healthBucket + 0x9e3779b9;
+    seed ^= healthBucket + 0x9e3779b9 + phaseFactor;
     seed = Math.imul(seed, 16777619);
     seed ^= w;
     seed = Math.imul(seed, 16777619);
@@ -197,6 +224,49 @@ export class TreeRenderer {
     seed = Math.imul(seed, 16777619);
     this.treeSeed = seed >>> 0;
     this.rngState = this.treeSeed;
+  }
+
+  private drawSeedStage() {
+    const centerX = this.width / 2;
+    const groundY = this.height - 44;
+
+    this.ctx.save();
+    this.ctx.translate(centerX, groundY);
+
+    // Soil mound
+    this.ctx.fillStyle = this.health >= 50 ? '#8d6e63' : '#7b6156';
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 10, 78, 22, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Seed body
+    this.ctx.fillStyle = this.health >= 40 ? '#6d4c41' : '#5d4037';
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 0, 10, 7, -0.35, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Sprout appears as health improves
+    if (this.health >= 35) {
+      const sproutHeight = 8 + ((this.health - 35) / 65) * 24;
+
+      this.ctx.strokeStyle = '#4a7c59';
+      this.ctx.lineWidth = 3;
+      this.ctx.lineCap = 'round';
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, -1);
+      this.ctx.quadraticCurveTo(2, -sproutHeight * 0.5, 0, -sproutHeight);
+      this.ctx.stroke();
+
+      this.ctx.fillStyle = this.health >= 65 ? '#66bb6a' : '#7cb342';
+      this.ctx.beginPath();
+      this.ctx.ellipse(-4, -sproutHeight + 2, 6, 3, -0.55, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.beginPath();
+      this.ctx.ellipse(4, -sproutHeight + 2, 6, 3, 0.55, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+
+    this.ctx.restore();
   }
 
   private random() {
