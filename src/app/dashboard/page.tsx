@@ -42,6 +42,10 @@ export default function DashboardPage() {
     return streak;
   };
 
+  const dayHasActivity = (entries: Record<string, 'pending' | 'completed' | 'failed'>) => {
+    return Object.values(entries).some((status) => status === 'completed' || status === 'failed');
+  };
+
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -145,14 +149,15 @@ export default function DashboardPage() {
       if (!user) return;
       if (dayLog.finalizedAt) return;
       if (habits.length === 0) return;
-      
-      const isFirstSaveToday = !dayLog.loggedAt;
+
+      const wasActiveBefore = dayHasActivity(dayLog.entries);
 
       // Optimistic update
       const newEntries = { ...dayLog.entries, [habitId]: newTargetStatus };
       
       // Calculate new tree score
       const dailyScore = calculateTreeHealth(newEntries, habits);
+      const isActiveNow = dayHasActivity(newEntries);
       
       setDayLog(prev => ({
          ...prev,
@@ -164,16 +169,25 @@ export default function DashboardPage() {
 
       try {
          await saveDayLog(user.uid, todayStr, newEntries, dailyScore, habits.length);
-         if (isFirstSaveToday) {
-            const recent = await getRecentDayLogs(user.uid, 90);
-            const dateSet = new Set(recent.map(r => r.dateStr).concat([todayStr]));
-            const currentStreak = computeCurrentStreakFromLogDates(dateSet, todayStr);
-            const totalDaysLogged = stats.totalDaysLogged + 1;
-            const longestStreak = Math.max(stats.longestStreak, currentStreak);
-            const nextStats = { currentStreak, longestStreak, totalDaysLogged };
-            setStats(prev => ({ ...prev, ...nextStats }));
-            await updateUserStats(user.uid, nextStats);
-         }
+        const recent = await getRecentDayLogs(user.uid, 90);
+        const activeDateSet = new Set(
+          recent
+           .filter((r) => dayHasActivity(r.log.entries || {}))
+           .map((r) => r.dateStr)
+        );
+
+        if (isActiveNow) activeDateSet.add(todayStr);
+        else activeDateSet.delete(todayStr);
+
+        const currentStreak = computeCurrentStreakFromLogDates(activeDateSet, todayStr);
+        const totalDaysLogged = Math.max(
+          0,
+          stats.totalDaysLogged + (isActiveNow ? 1 : 0) - (wasActiveBefore ? 1 : 0)
+        );
+        const longestStreak = Math.max(stats.longestStreak, currentStreak);
+        const nextStats = { currentStreak, longestStreak, totalDaysLogged };
+        setStats(prev => ({ ...prev, ...nextStats }));
+        await updateUserStats(user.uid, nextStats);
       } catch(e) {
          console.error("Failed to save habit toggle", e);
          // Revert on failure (simple reload for now)
@@ -196,6 +210,8 @@ export default function DashboardPage() {
     effectiveTreeHealth >= 55 ? 'Growing' :
     effectiveTreeHealth >= 35 ? 'Struggling' :
     'Withering';
+  const completedTodayCount = habits.filter((habit) => dayLog.entries[habit.id] === 'completed').length;
+  const slotsLeft = Math.max(0, 10 - habits.length);
   const handleEdit = (habit: Habit) => {
     setEditingHabit(habit);
     setIsFormOpen(true);
@@ -262,7 +278,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
              <h2 className="text-xl">Today&apos;s Habits</h2>
              <span className="text-sm font-medium text-[var(--muted-fg)] bg-[var(--muted)] px-2 py-0.5 rounded-full">
-                {habits.length}/10
+               {completedTodayCount}/{habits.length || 0} done • {slotsLeft} slots left
              </span>
           </div>
           
@@ -301,7 +317,7 @@ export default function DashboardPage() {
 
       {/* FAB & Bottom Nav */}
       {habits.length < 10 && <AddHabitButton onClick={handleAddNew} />}
-      <BottomNav activePath="/dashboard" />
+      <BottomNav />
 
       {/* Habit Form Modal */}
       {isFormOpen && (

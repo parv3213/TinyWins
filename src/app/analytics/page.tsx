@@ -287,7 +287,7 @@ export default function AnalyticsPage() {
         )}
       </main>
 
-      <BottomNav activePath="/analytics" />
+      <BottomNav />
 
       {isDataOpen && (
         <div

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface NavItem {
   path: string;
@@ -6,7 +9,8 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-export default function BottomNav({ activePath }: { activePath: string }) {
+export default function BottomNav() {
+  const pathname = usePathname();
   const items: NavItem[] = [
     {
       path: '/dashboard',
@@ -42,7 +46,7 @@ export default function BottomNav({ activePath }: { activePath: string }) {
     <nav className="bottom-nav" aria-label="Bottom navigation">
       <div className="app-container bottom-nav-inner">
         {items.map((item) => {
-          const isActive = activePath === item.path;
+          const isActive = pathname === item.path;
           return (
             <Link 
               key={item.path} 
