@@ -53,7 +53,7 @@ export default function LandingPage() {
                     <span className="text-[var(--success)] italic">Real</span> momentum.
                 </h1>
 
-                <p className="text-lg text-[var(--muted-fg)] mb-10 max-w-md mx-auto">
+                <p className="text-lg text-[var(--muted-fg)] mb-6 max-w-md mx-auto">
                     A minimalist habit tracker that makes consistency feel calm, clear, and rewarding.
                 </p>
 
@@ -61,7 +61,7 @@ export default function LandingPage() {
                     href="/login"
                     className="btn btn-primary btn-lg inline-flex self-center rounded-full px-8 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all mb-16"
                 >
-                    Start Free
+                    Start Free — Always
                 </Link>
 
                 {/* Demo Tree Canvas */}
@@ -120,9 +120,16 @@ export default function LandingPage() {
                 </div>
             </main>
 
-            <footer className="mt-8 py-8 text-center text-sm text-[var(--muted-fg)] border-t border-[var(--border)] bg-[var(--card)]">
-                <p>TinyWins.</p>
-                <p className="mt-1">Small habits. Real momentum.</p>
+            <footer className="site-footer mt-8 py-8 text-sm text-[var(--muted-fg)]">
+                <div className="app-container mx-auto flex items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="text-2xl text-[var(--primary)] font-bold flex items-center gap-2">
+                            <span className="text-3xl">🌳</span> TinyWins
+                        </div>
+                    </div>
+
+                    <div className="text-xs text-[var(--muted-fg)]">© {new Date().getFullYear()} TinyWins.</div>
+                </div>
             </footer>
         </div>
     );
