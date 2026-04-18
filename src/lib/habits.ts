@@ -19,7 +19,7 @@ import { getStreakXpMultiplier, getXpToNextLevel, normalizeTreeLevelAndXp } from
 import { DayLog, Habit, UserStats } from "./types";
 
 // Constants
-export const MAX_HABITS = 10;
+export const MAX_HABITS = 25;
 
 // Generic helper to get today's date string in YYYY-MM-DD
 export function getTodayStr() {
@@ -48,7 +48,7 @@ export async function createHabit(uid: string, habit: Omit<Habit, "id" | "create
     // Check limit (should also be enforced on client)
     const currentHabits = await getHabits(uid);
     if (currentHabits.length >= MAX_HABITS) {
-        throw new Error(`Cannot create more than ${MAX_HABITS} habits.`);
+        throw new Error("Cannot create more habits.");
     }
 
     const newDocRef = doc(habitsRef);

@@ -16,6 +16,7 @@ import {
     getRecentDayLogsBefore,
     getTodayStr,
     getUserStats,
+    MAX_HABITS,
     saveDayLog,
     updateUserStats,
 } from "@/lib/habits";
@@ -276,7 +277,6 @@ export default function DashboardPage() {
                 ? "Struggling"
                 : "Withering";
     const completedTodayCount = habits.filter((habit) => dayLog.entries[habit.id] === "completed").length;
-    const slotsLeft = Math.max(0, 10 - habits.length);
     const handleEdit = (habit: Habit) => {
         setEditingHabit(habit);
         setIsFormOpen(true);
@@ -351,7 +351,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl">Today&apos;s Habits</h2>
                         <span className="text-sm font-medium text-[var(--muted-fg)] bg-[var(--muted)] px-2 py-0.5 rounded-full">
-                            {completedTodayCount}/{habits.length || 0} done • {slotsLeft} slots left
+                            {completedTodayCount}/{habits.length || 0} done
                         </span>
                     </div>
 
@@ -391,7 +391,7 @@ export default function DashboardPage() {
             </main>
 
             {/* FAB & Bottom Nav */}
-            {habits.length < 10 && <AddHabitButton onClick={handleAddNew} />}
+            {habits.length < MAX_HABITS && <AddHabitButton onClick={handleAddNew} />}
             <BottomNav />
 
             {/* Habit Form Modal */}
