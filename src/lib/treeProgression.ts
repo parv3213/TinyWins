@@ -85,9 +85,10 @@ export function getStreakXpMultiplier(streak: number): number {
 export function getTreePhaseFromLevel(level: number): TreePhase {
     const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
 
-    if (safeLevel <= 1) return "seed";
-    if (safeLevel <= 2) return "sprout";
-    if (safeLevel <= 3) return "sapling";
+    // Live user mapping: start at sapling. The seed/sprout phases remain in the
+    // TreePhase union so the landing-page growth-cycle demo can still showcase
+    // them, but real dashboards never render them.
+    if (safeLevel <= 2) return "sapling";
     if (safeLevel <= 4) return "young-tree";
     return "mature-tree";
 }

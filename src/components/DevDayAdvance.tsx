@@ -1,4 +1,4 @@
-import { finalizeDayWithHealth, shiftDateStrByDays } from "@/lib/habits";
+import { DEV_TODAY_STORAGE_KEY, finalizeDayWithHealth, shiftDateStrByDays } from "@/lib/habits";
 import { DayLog, Habit } from "@/lib/types";
 import { useState } from "react";
 
@@ -22,8 +22,9 @@ export default function DevDayAdvance({ uid, todayStr, habits, dayLog, setTodayS
             
             // Advance to next day
             const nextDay = shiftDateStrByDays(todayStr, 1);
+            window.localStorage.setItem(DEV_TODAY_STORAGE_KEY, nextDay);
             setTodayStr(nextDay);
-            
+
             console.log(`[DEV] Advanced from ${todayStr} to ${nextDay}`);
         } catch (e) {
             console.error("Dev advance failed", e);
@@ -34,6 +35,7 @@ export default function DevDayAdvance({ uid, todayStr, habits, dayLog, setTodayS
 
     const handleRewind = () => {
         const prevDay = shiftDateStrByDays(todayStr, -1);
+        window.localStorage.setItem(DEV_TODAY_STORAGE_KEY, prevDay);
         setTodayStr(prevDay);
         console.log(`[DEV] Rewound from ${todayStr} to ${prevDay}`);
     };

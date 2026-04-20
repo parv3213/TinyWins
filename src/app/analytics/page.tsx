@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import CompletionRing from '@/components/charts/CompletionRing';
-import MonthlyBarChart from '@/components/charts/MonthlyBarChart';
+import GoodBadTower, { DailyBucket, TowerGranularity } from '@/components/charts/GoodBadTower';
 import PageShell from '@/components/PageShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
@@ -12,7 +12,6 @@ import { getTodayStr } from '@/lib/habits';
 import { DayLog, Habit, UserStats } from '@/lib/types';
 import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 
-type DailyCount = { date: string; positive: number; negative: number };
 type ActiveDayRow = { dateStr: string; dateIso: string; good: number; bad: number; total: number };
 
 const toDateStr = (d: Date) => {
@@ -48,13 +47,14 @@ export default function AnalyticsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<UserStats>({ currentStreak: 0, longestStreak: 0, totalDaysLogged: 0, treeHealth: 50 });
-  const [monthlyData, setMonthlyData] = useState<DailyCount[]>([]);
+  const [towerBuckets, setTowerBuckets] = useState<DailyBucket[]>([]);
   const [weeklyPct, setWeeklyPct] = useState(0);
   const [goodPct, setGoodPct] = useState(0);
   const [badPct, setBadPct] = useState(0);
   const [activeRows, setActiveRows] = useState<ActiveDayRow[]>([]);
   const [isDataOpen, setIsDataOpen] = useState(false);
   const [todayStr, setTodayStr] = useState(getTodayStr());
+  const [granularity, setGranularity] = useState<TowerGranularity>('daily');
 
   useEffect(() => {
     if (!user) return;
@@ -88,30 +88,31 @@ export default function AnalyticsPage() {
       if (!gotHabits || !gotLogs || !gotStats) return;
 
       const rows30: ActiveDayRow[] = [];
+      const buckets: DailyBucket[] = [];
       let good30 = 0;
       let bad30 = 0;
       let good7 = 0;
       let total7 = 0;
 
-      for (let i = 29; i >= 0; i--) {
+      for (let i = 364; i >= 0; i--) {
         const d = new Date(todayStr + 'T00:00:00');
         d.setDate(d.getDate() - i);
         const dateStr = toDateStr(d);
         const log = logByDate.get(dateStr) ?? null;
-        if (!log?.loggedAt) continue; // hide missing/inactive days
-
-        const { good, bad } = countDay(habits, log);
+        const hasLog = !!log?.loggedAt;
+        const { good, bad } = hasLog ? countDay(habits, log) : { good: 0, bad: 0 };
         const total = good + bad;
-        if (total <= 0) continue;
 
-        const dateIso = d.toISOString();
-        rows30.push({ dateStr, dateIso, good, bad, total });
+        buckets.push({ date: dateStr, good, bad });
 
-        good30 += good;
-        bad30 += bad;
-        if (i < 7) {
-          good7 += good;
-          total7 += total;
+        if (i < 30 && hasLog && total > 0) {
+          rows30.push({ dateStr, dateIso: d.toISOString(), good, bad, total });
+          good30 += good;
+          bad30 += bad;
+          if (i < 7) {
+            good7 += good;
+            total7 += total;
+          }
         }
       }
 
@@ -121,7 +122,7 @@ export default function AnalyticsPage() {
       const nextWeeklyPct = total7 > 0 ? Math.round((good7 / total7) * 100) : 0;
 
       setStats(overview ?? { currentStreak: 0, longestStreak: 0, totalDaysLogged: 0, treeHealth: 50 });
-      setMonthlyData(rows30.map((r) => ({ date: r.dateIso, positive: r.good, negative: r.bad })));
+      setTowerBuckets(buckets);
       setWeeklyPct(nextWeeklyPct);
       setGoodPct(nextGoodPct);
       setBadPct(nextBadPct);
@@ -147,7 +148,7 @@ export default function AnalyticsPage() {
     );
 
     const logsRef = collection(db, 'users', user.uid, 'logs');
-    const logsQuery = query(logsRef, orderBy('__name__', 'desc'), limit(90));
+    const logsQuery = query(logsRef, orderBy('__name__', 'desc'), limit(400));
     const unsubLogs = onSnapshot(
       logsQuery,
       (snap) => {
@@ -264,12 +265,14 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Monthly Chart */}
+        {/* Good vs Bad Tower */}
         <div className="card-flat p-5">
-           <div className="flex items-center justify-between mb-6">
-              <div>
-                 <h3 className="text-base font-medium">30 Day History</h3>
-                 <p className="text-xs text-[var(--muted-fg)]">Daily completions</p>
+           <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="min-w-0">
+                 <h3 className="text-base font-medium">Good vs Bad Tower</h3>
+                 <p className="text-xs text-[var(--muted-fg)]">
+                   {granularity === 'daily' ? 'Last 30 days' : granularity === 'weekly' ? 'Last 12 weeks' : 'Last 12 months'}
+                 </p>
               </div>
               <button
                 className="text-xs text-[var(--primary)] font-medium hover:underline disabled:opacity-60 disabled:no-underline"
@@ -279,8 +282,29 @@ export default function AnalyticsPage() {
                  View Data
               </button>
            </div>
-           
-           <MonthlyBarChart dataPoints={monthlyData} />
+
+           <div className="mb-4 inline-flex rounded-full border border-[var(--border)] bg-[var(--card)] p-0.5 text-xs">
+             {(['daily', 'weekly', 'monthly'] as TowerGranularity[]).map((g) => {
+               const active = granularity === g;
+               return (
+                 <button
+                   key={g}
+                   type="button"
+                   onClick={() => setGranularity(g)}
+                   className={`px-3 py-1.5 rounded-full font-medium transition-colors ${
+                     active
+                       ? 'bg-[var(--primary)] text-[var(--primary-fg,white)]'
+                       : 'text-[var(--muted-fg)] hover:text-[var(--fg)]'
+                   }`}
+                   aria-pressed={active}
+                 >
+                   {g === 'daily' ? 'Daily' : g === 'weekly' ? 'Weekly' : 'Monthly'}
+                 </button>
+               );
+             })}
+           </div>
+
+           <GoodBadTower buckets={towerBuckets} granularity={granularity} />
         </div>
 
           </>
@@ -296,7 +320,7 @@ export default function AnalyticsPage() {
             if (e.target === e.currentTarget) setIsDataOpen(false);
           }}
         >
-          <div className="modal-content relative">
+          <div className="modal-content relative flex flex-col" style={{ overflow: 'hidden' }}>
             <div className="modal-handle"></div>
             <button
               onClick={() => setIsDataOpen(false)}
@@ -315,7 +339,7 @@ export default function AnalyticsPage() {
                 <div className="text-sm text-[var(--muted-fg)]">No logged days yet.</div>
               </div>
             ) : (
-              <div className="flex flex-col gap-3 max-h-[60vh] overflow-auto pr-1">
+              <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-auto pr-1">
                 {activeRows
                   .slice()
                   .reverse()

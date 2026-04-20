@@ -21,8 +21,15 @@ import { DayLog, Habit, UserStats } from "./types";
 // Constants
 export const MAX_HABITS = 25;
 
-// Generic helper to get today's date string in YYYY-MM-DD
+export const DEV_TODAY_STORAGE_KEY = "dev:simulatedToday";
+
+// Generic helper to get today's date string in YYYY-MM-DD.
+// In dev, respects a simulated date persisted by DevDayAdvance so all pages stay in sync.
 export function getTodayStr() {
+    if (typeof window !== "undefined") {
+        const override = window.localStorage.getItem(DEV_TODAY_STORAGE_KEY);
+        if (override && /^\d{4}-\d{2}-\d{2}$/.test(override)) return override;
+    }
     const d = new Date();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");

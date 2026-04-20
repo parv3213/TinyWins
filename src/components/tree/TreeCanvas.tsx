@@ -45,6 +45,8 @@ export default function TreeCanvas({
     const [demoHealth, setDemoHealth] = useState(HERO_HEALTH_BY_PHASE[0]!);
     const [growthTipHovered, setGrowthTipHovered] = useState(false);
     const [growthTipPinned, setGrowthTipPinned] = useState(false);
+    const [isGrowing, setIsGrowing] = useState(false);
+    const prevRenderedPhaseRef = useRef<TreePhase | undefined>(undefined);
     const growthTipWrapRef = useRef<HTMLDivElement>(null);
 
     const growthTipOpen = growthTipHovered || growthTipPinned;
@@ -166,7 +168,21 @@ export default function TreeCanvas({
 
         const renderer = rendererRef.current;
 
-        // Set initial and handle resize
+        // Prime renderer with current props. The phase/health sync effects
+        // below only re-run when *their* deps change; without this priming the
+        // renderer is stuck on its default phase ("seed") whenever the prop
+        // happened to be stable across the isClient flip.
+        renderer.setHealth(effectiveHealth);
+        const initialPhase = growthCycleDemo ? demoPhase : phase;
+        if (initialPhase) {
+            renderer.setPhase(initialPhase);
+            prevRenderedPhaseRef.current = initialPhase;
+        }
+
+        // Set initial and handle resize. Prefer ResizeObserver on the container so
+        // we only react to real size changes — iOS Safari fires window 'resize' on
+        // every scroll tick (URL bar collapse) even when our fixed-height container
+        // hasn't moved, which was causing visible canvas jitter.
         const handleResize = () => {
             if (containerRef.current) {
                 const { clientWidth, clientHeight } = containerRef.current;
@@ -174,7 +190,13 @@ export default function TreeCanvas({
             }
         };
 
-        window.addEventListener("resize", handleResize);
+        let resizeObserver: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+            resizeObserver = new ResizeObserver(() => handleResize());
+            resizeObserver.observe(containerRef.current);
+        } else {
+            window.addEventListener("resize", handleResize);
+        }
         handleResize();
 
         // Animation Loop
@@ -195,9 +217,14 @@ export default function TreeCanvas({
         animationRef.current = requestAnimationFrame(animate);
 
         return () => {
-            window.removeEventListener("resize", handleResize);
+            if (resizeObserver) resizeObserver.disconnect();
+            else window.removeEventListener("resize", handleResize);
             cancelAnimationFrame(animationRef.current);
         };
+        // Priming values are read once here; dedicated sync effects below keep
+        // them updated. Including them as deps would recreate the renderer and
+        // kill the rAF loop on every health/phase change.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isClient]);
 
     useEffect(() => {
@@ -209,12 +236,55 @@ export default function TreeCanvas({
     }, [effectiveHealth]);
 
     useEffect(() => {
-        if (!rendererRef.current) return;
+        const renderer = rendererRef.current;
+        if (!renderer) return;
+
         if (growthCycleDemo) {
-            rendererRef.current.setPhase(demoPhase);
-        } else if (phase) {
-            rendererRef.current.setPhase(phase);
+            renderer.setPhase(demoPhase);
+            prevRenderedPhaseRef.current = demoPhase;
+            return;
         }
+
+        if (!phase) return;
+
+        const prev = prevRenderedPhaseRef.current;
+        const isFirst = prev === undefined;
+
+        if (isFirst || prev === phase) {
+            renderer.setPhase(phase);
+            prevRenderedPhaseRef.current = phase;
+            return;
+        }
+
+        const prefersReducedMotion =
+            typeof window !== "undefined" &&
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        if (prefersReducedMotion) {
+            renderer.setPhase(phase);
+            prevRenderedPhaseRef.current = phase;
+            return;
+        }
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsGrowing(true);
+        renderer.triggerGrowthBurst(20);
+
+        const swapTimer = window.setTimeout(() => {
+            renderer.setPhase(phase);
+            renderer.triggerGrowthBurst(32);
+            prevRenderedPhaseRef.current = phase;
+        }, 800);
+
+        const endTimer = window.setTimeout(() => {
+            setIsGrowing(false);
+        }, 2200);
+
+        return () => {
+            window.clearTimeout(swapTimer);
+            window.clearTimeout(endTimer);
+        };
     }, [growthCycleDemo, demoPhase, phase]);
 
     if (!isClient) {
@@ -247,7 +317,10 @@ export default function TreeCanvas({
             <div className="absolute inset-0 z-0"></div>
 
             {/* Canvas */}
-            <canvas ref={canvasRef} className="absolute inset-0 z-10 w-full h-full" />
+            <canvas
+                ref={canvasRef}
+                className={`absolute inset-0 z-10 w-full h-full${isGrowing ? " animate-treeGrow" : ""}`}
+            />
 
             {/* Glass reflection overlays (subtle, mirror-like) */}
             <div

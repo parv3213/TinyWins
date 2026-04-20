@@ -67,18 +67,44 @@ export class TreeRenderer {
         this.setTreeSeed();
     }
 
+    /** Burst of sparkles at trunk base — used when the user levels into a new phase. */
+    triggerGrowthBurst(count: number = 24) {
+        const cx = this.width / 2;
+        const baseY = this.height - 40;
+        const maxParticles = 120;
+        for (let i = 0; i < count; i++) {
+            if (this.particles.length >= maxParticles) break;
+            const spreadX = (Math.random() - 0.5) * this.width * 0.45;
+            const spreadY = Math.random() * this.height * 0.35;
+            this.particles.push(new Sparkle(cx + spreadX, baseY - spreadY));
+        }
+    }
+
     setDemoMotion(enabled: boolean) {
         this.demoMotion = enabled;
     }
 
     resize(width: number, height: number) {
+        const rawDpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+        const nextDpr = Math.min(2, rawDpr);
+        const pixelWidth = Math.max(1, Math.round(width * nextDpr));
+        const pixelHeight = Math.max(1, Math.round(height * nextDpr));
+
+        // iOS fires resize events continuously as the URL bar collapses; skip when the
+        // actual backing-store dimensions haven't changed so we don't reallocate
+        // buffers and re-seed the tree on every scroll tick.
+        if (
+            this.canvas.width === pixelWidth &&
+            this.canvas.height === pixelHeight &&
+            this.width === width &&
+            this.height === height
+        ) {
+            return;
+        }
+
         this.width = width;
         this.height = height;
-
-        const rawDpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-        this.dpr = Math.min(2, rawDpr);
-        const pixelWidth = Math.max(1, Math.round(width * this.dpr));
-        const pixelHeight = Math.max(1, Math.round(height * this.dpr));
+        this.dpr = nextDpr;
 
         this.canvas.width = pixelWidth;
         this.canvas.height = pixelHeight;
