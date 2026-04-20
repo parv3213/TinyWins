@@ -158,7 +158,7 @@ function dayHasActivity(entries: DayLog["entries"] | undefined): boolean {
     return Object.values(entries).some((status) => status === "completed" || status === "failed");
 }
 
-function shiftDateStrByDays(dateStr: string, deltaDays: number): string {
+export function shiftDateStrByDays(dateStr: string, deltaDays: number): string {
     const d = new Date(`${dateStr}T00:00:00`);
     d.setDate(d.getDate() + deltaDays);
     const y = d.getFullYear();

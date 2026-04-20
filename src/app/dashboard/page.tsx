@@ -18,8 +18,10 @@ import {
     getUserStats,
     MAX_HABITS,
     saveDayLog,
+    shiftDateStrByDays,
     updateUserStats,
 } from "@/lib/habits";
+import DevDayAdvance from "@/components/DevDayAdvance";
 import {
     getStreakXpMultiplier,
     getTreePhaseFromLevel,
@@ -31,6 +33,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function DashboardPage() {
     const { user } = useAuth();
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) return "Good morning";
+        if (hour >= 12 && hour < 17) return "Good afternoon";
+        if (hour >= 17 && hour < 22) return "Good evening";
+        return "Hi";
+    };
+
+    const firstName =
+        user?.displayName && user.displayName !== "Anonymous" ? user.displayName.split(" ")[0] : null;
 
     const [habits, setHabits] = useState<Habit[]>([]);
     const [dayLog, setDayLog] = useState<DayLog>({ entries: {}, treeScore: 0, loggedAt: "" });
@@ -214,7 +227,7 @@ export default function DashboardPage() {
                 return;
             }
 
-            const recent = await getRecentDayLogsBefore(user.uid, shiftDateByDays(todayStr, 1), 90);
+            const recent = await getRecentDayLogsBefore(user.uid, shiftDateStrByDays(todayStr, 1), 90);
             const activeDateSet = new Set(
                 recent.filter((r) => dayHasActivity(r.log.entries || {})).map((r) => r.dateStr),
             );
@@ -245,14 +258,6 @@ export default function DashboardPage() {
         }
     };
 
-    const shiftDateByDays = (dateStr: string, deltaDays: number) => {
-        const d = new Date(`${dateStr}T00:00:00`);
-        d.setDate(d.getDate() + deltaDays);
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${y}-${m}-${day}`;
-    };
 
     const effectiveTreeHealth = (() => {
         if (dayLog.finalizedAt) return stats.treeHealth;
@@ -297,6 +302,13 @@ export default function DashboardPage() {
             <Header />
 
             <main className="flex flex-col gap-6">
+                <header className="animate-slideUp">
+                    <h2 className="text-2xl font-bold tracking-tight">
+                        {getGreeting()}
+                        {firstName ? `, ${firstName}` : ""}
+                    </h2>
+                </header>
+
                 {/* Tree Gamification Widget */}
                 <section>
                     {loading ? (
@@ -400,6 +412,16 @@ export default function DashboardPage() {
                     onClose={() => setIsFormOpen(false)}
                     onSuccess={handleFormSuccess}
                     existingHabit={editingHabit}
+                />
+            )}
+            {/* Dev Tools */}
+            {process.env.NODE_ENV !== "production" && user && (
+                <DevDayAdvance
+                    uid={user.uid}
+                    todayStr={todayStr}
+                    habits={habits}
+                    dayLog={dayLog}
+                    setTodayStr={setTodayStr}
                 />
             )}
         </PageShell>
